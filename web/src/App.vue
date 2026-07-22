@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { store, persist, envKey } from "./store";
+import { store, persist, login, logout } from "./store";
 import { MODELS } from "./lib/agent";
 import ImportPanel from "./components/ImportPanel.vue";
 import RunPanel from "./components/RunPanel.vue";
@@ -25,6 +25,17 @@ const bannerUrl = computed(() => {
 });
 
 const repoUrl = "https://github.com/Minalinnski/kc-ai-kikaku";
+
+// 自托管登录
+const loginUser = ref("");
+const loginPass = ref("");
+const loginErr = ref("");
+const loggingIn = ref(false);
+async function doLogin() {
+  loggingIn.value = true;
+  loginErr.value = await login(loginUser.value.trim(), loginPass.value);
+  loggingIn.value = false;
+}
 </script>
 
 <template>
@@ -43,9 +54,25 @@ const repoUrl = "https://github.com/Minalinnski/kc-ai-kikaku";
       </div>
     </header>
 
+    <!-- 自托管模式:未登录只显示登录框 -->
+    <div v-if="store.server && !store.authed" class="panel" style="max-width: 420px; margin: 40px auto">
+      <h2 style="margin-top: 0">登录</h2>
+      <p class="dim">输入管理员发给你的帐号密码。</p>
+      <form @submit.prevent="doLogin" style="display: flex; flex-direction: column; gap: 10px">
+        <input type="text" v-model="loginUser" placeholder="帐号" autocomplete="username" />
+        <input type="password" v-model="loginPass" placeholder="密码" autocomplete="current-password" />
+        <button :disabled="loggingIn || !loginUser || !loginPass" type="submit">
+          {{ loggingIn ? "登录中…" : "进入企画室" }}
+        </button>
+        <p v-if="loginErr" class="err" style="margin: 0">✗ {{ loginErr }}</p>
+      </form>
+    </div>
+
+    <template v-else>
     <div class="panel config">
       <span class="keystate">
-        <template v-if="envKey"><span class="ok">●</span> API Key 已从 .env 载入</template>
+        <template v-if="store.server"><span class="ok">●</span> API 由服务器托管 · {{ store.user }}</template>
+        <template v-else-if="store.proxyKey"><span class="ok">●</span> API Key 已由本地代理注入(web/.env)</template>
         <template v-else>
           <span class="warn">○</span> 未配置 API Key —
           <a :href="repoUrl + '#快速开始'" target="_blank">按 README 配置 .env 后本地运行</a>
@@ -57,8 +84,9 @@ const repoUrl = "https://github.com/Minalinnski/kc-ai-kikaku";
           <option v-for="m in MODELS" :key="m.id" :value="m.id">{{ m.label }}</option>
         </select>
       </label>
-      <span class="dim" style="font-size: 12px">Key 只在你本机,请求直连 Anthropic。</span>
-      <details v-if="!envKey" style="margin: 0">
+      <span v-if="!store.server" class="dim" style="font-size: 12px">Key 只在你本机,请求直连 Anthropic。</span>
+      <button v-if="store.server" class="secondary" style="padding: 4px 12px; font-size: 12px" @click="logout()">退出</button>
+      <details v-if="!store.server && !store.proxyKey" style="margin: 0">
         <summary style="font-size: 12px">临时填写(仅本次会话,不保存)</summary>
         <input type="password" v-model="store.manualKey" placeholder="sk-ant-…" style="width: 260px; margin-top: 6px" />
       </details>
@@ -85,6 +113,7 @@ const repoUrl = "https://github.com/Minalinnski/kc-ai-kikaku";
       <ResultOverview v-show="tab === 'overview'" />
       <ResultMaps v-show="tab === 'maps'" />
       <GuideView v-show="tab === 'guide'" />
+    </template>
     </template>
 
     <p class="footnote">

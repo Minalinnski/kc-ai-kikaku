@@ -186,8 +186,15 @@ export interface RunCallbacks {
 }
 
 function makeClient(key: string): Anthropic {
-  // 本地(dev/preview)走同源 /anthropic 代理,绕开 CORS 与组织 browser-access 限制;
-  // 线上部署时回退为直连(需组织允许浏览器请求)。
+  // 占位 key("__server__"/"__proxy__"):走同源 /anthropic 代理,真实 key 由服务端注入。
+  if (key.startsWith("__")) {
+    return new Anthropic({
+      apiKey: key,
+      baseURL: location.origin + "/anthropic",
+      dangerouslyAllowBrowser: true,
+    });
+  }
+  // 手动填写的真实 key:本地走代理(绕 CORS/组织限制),线上部署回退直连。
   const isLocal = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname);
   const baseURL = isLocal ? location.origin + "/anthropic" : undefined;
   // sk-ant-oat…= OAuth token(Bearer + oauth beta 头);sk-ant-api…= 标准 API Key

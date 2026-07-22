@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "build:nocheck": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:server": "vue-tsc -b && VITE_ANTHROPIC_API_KEY= vite build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.113.0",

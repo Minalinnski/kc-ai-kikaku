@@ -11,19 +11,36 @@
 
 ## 快速开始
 
-需要:[Node.js](https://nodejs.org/) 18+、一个 [Anthropic API Key](https://console.anthropic.com/settings/keys)。
+需要:[Node.js](https://nodejs.org/) 18+、一个 [Anthropic API Key](https://console.anthropic.com/settings/keys)(`sk-ant-api03-…`,订阅版 OAuth token 不可用)。
+
+### 方式 A:自托管服务器(推荐,发帐密给朋友用)
+
+管理员部署一次,key 只存在服务器上(绝不进浏览器/前端产物),朋友凭帐密登录即用:
 
 ```bash
 git clone https://github.com/Minalinnski/kc-ai-kikaku.git
-cd kc-ai-kikaku/web
-npm install
-cp .env.example .env      # 编辑 .env,填入你的 API Key
-npm run dev               # 打开 http://localhost:5173
+cd kc-ai-kikaku/web && npm install && npm run build && cd ..
+cp web/.env.example web/.env            # 填入 API Key
+cp server/.env.example server/.env      # 设置 AUTH_USERS 帐密列表
+node server/index.mjs                   # http://localhost:8787
 ```
 
-- Key 只在你本机使用,页面直连 Anthropic,不经过任何第三方服务器;`.env` 已被 gitignore。
+服务器启动时会自检构建产物中不含真实 key。要给朋友用,把 8787 端口暴露出去即可
+(内网直连 / Tailscale / frp / 挂个反代,按你的网络环境来;公网暴露建议套 HTTPS)。
+
+### 方式 B:本地自跑(自己一个人用)
+
+```bash
+cd kc-ai-kikaku/web
+npm install
+cp .env.example .env      # 填入你的 API Key
+npm run dev               # http://localhost:5173(dev 服务器代理注入 key)
+```
+
+- 两种方式 key 都不进前端:由本地代理/服务器在转发到 Anthropic 时注入,浏览器只见占位符;
+  同源代理也顺便绕开了浏览器 CORS 和组织级 browser-access 限制。
 - 建议在 Anthropic 控制台给 Key 设置用量上限。一次完整分析(总览+E1~E5)约
-  **$1~3**(Opus 4.8)或 **$0.5~1.5**(Sonnet 4.6),攻略语料走 prompt cache。
+  **$1~3**(Opus 4.8)或 **$0.5~1.5**(Sonnet 4.6),攻略语料走 prompt cache,逐图并行。
 
 ### 使用流程
 
