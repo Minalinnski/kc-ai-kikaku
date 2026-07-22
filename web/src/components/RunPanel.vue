@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { store, persist } from "../store";
+import { store, persist, apiKey } from "../store";
 import { runAgent, estimateCost } from "../lib/agent";
 
 const emit = defineEmits<{ done: [] }>();
@@ -10,7 +10,7 @@ const selectedMaps = ref([...MAPS]);
 const globalError = ref("");
 
 const canRun = computed(
-  () => !!store.apiKey && !!store.box?.ships.length && !!store.box?.equips.length && !store.running,
+  () => !!apiKey() && !!store.box?.ships.length && !!store.box?.equips.length && !store.running,
 );
 
 const stages = computed(() => ["overview", ...selectedMaps.value]);
@@ -20,14 +20,14 @@ function stageLabel(s: string) {
 }
 
 async function run(fresh: boolean) {
-  if (!store.apiKey || !store.box || !store.master || !store.pack) return;
+  if (!apiKey() || !store.box || !store.master || !store.pack) return;
   globalError.value = "";
   store.running = true;
   store.stageStatus = {};
   if (fresh) store.run = null;
   try {
     const result = await runAgent(
-      store.apiKey,
+      apiKey(),
       store.model,
       store.pack,
       store.box,
@@ -83,7 +83,7 @@ const hasPartial = computed(
       </p>
       <p v-if="!store.box?.ships.length" class="warn">请先在「① 导入 Box」导入舰娘数据。</p>
       <p v-else-if="!store.box?.equips.length" class="warn">尚未导入装备列表,请回到「① 导入 Box」补充。</p>
-      <p v-if="!store.apiKey" class="warn">请先在顶部填入 Anthropic API Key。</p>
+      <p v-if="!apiKey()" class="warn">未检测到 API Key——请按 README 在 web/.env 配置 VITE_ANTHROPIC_API_KEY 后重启 dev server。</p>
 
       <div style="display: flex; gap: 10px">
         <button :disabled="!canRun" @click="run(true)">

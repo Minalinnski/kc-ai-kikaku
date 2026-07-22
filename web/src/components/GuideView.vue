@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { store } from "../store";
+import { tagChipStyle } from "../lib/tags";
 
 const sub = ref("lock");
 const pack = computed(() => store.pack);
@@ -41,7 +42,7 @@ const noro6List = computed(() =>
         </p>
         <div v-for="tag in pack.lock_table.tags" :key="tag.name" style="margin-bottom: 14px">
           <h3>
-            <span class="tag-chip">{{ tag.name }}</span>
+            <span class="tag-chip" :style="tagChipStyle(tag.name)">{{ tag.name }}</span>
             <span class="dim" style="font-size: 12px">
               {{ Object.entries(tag.phases_by_map).map(([m, p]) => `${m}: ${p}`).join(" ; ") }}
             </span>

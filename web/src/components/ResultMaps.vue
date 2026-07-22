@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { store } from "../store";
+import { tagChipStyle } from "../lib/tags";
 
 const mapIds = computed(() => Object.keys(store.run?.maps ?? {}));
 const active = ref("");
@@ -33,7 +34,7 @@ const cur = computed(() => {
         <div v-for="(ph, pi) in cur.phases" :key="pi" style="margin: 20px 0; border-top: 1px solid var(--border); padding-top: 12px">
           <h3>
             {{ ph.phase }}
-            <span class="tag-chip">{{ ph.tag }}</span>
+            <span class="tag-chip" :style="tagChipStyle(ph.tag)">{{ ph.tag }}</span>
             <span class="dim" style="font-size: 12px">{{ ph.fleet_type }}</span>
           </h3>
           <p class="dim mono" style="font-size: 12px">

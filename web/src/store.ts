@@ -4,7 +4,6 @@ import type { AgentRun, Box, GuidePack, Master } from "./lib/types";
 const LS_KEY = "kc-event-advisor";
 
 interface PersistShape {
-  apiKey: string;
   model: string;
   box: Box | null;
   run: AgentRun | null;
@@ -15,13 +14,16 @@ function load(): PersistShape {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) return { model: "claude-opus-4-8", ...JSON.parse(raw) };
   } catch {}
-  return { apiKey: "", model: "claude-opus-4-8", box: null, run: null };
+  return { model: "claude-opus-4-8", box: null, run: null };
 }
 
 const persisted = load();
 
+/** API Key 来源:.env(VITE_ANTHROPIC_API_KEY,推荐)> 会话内手动填写(不落盘) */
+export const envKey: string = (import.meta.env.VITE_ANTHROPIC_API_KEY ?? "").trim();
+
 export const store = reactive({
-  apiKey: persisted.apiKey,
+  manualKey: "", // 仅存内存,刷新即失
   model: persisted.model,
   box: persisted.box as Box | null,
   run: persisted.run as AgentRun | null,
@@ -33,10 +35,14 @@ export const store = reactive({
   stageStatus: {} as Record<string, { status: string; detail?: string; chars?: number }>,
 });
 
+export function apiKey(): string {
+  return envKey || store.manualKey.trim();
+}
+
 export function persist() {
   try {
-    const { apiKey, model, box, run } = store;
-    localStorage.setItem(LS_KEY, JSON.stringify({ apiKey, model, box, run }));
+    const { model, box, run } = store;
+    localStorage.setItem(LS_KEY, JSON.stringify({ model, box, run }));
   } catch (e) {
     console.warn("localStorage persist failed", e);
   }

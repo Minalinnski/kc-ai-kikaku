@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { store } from "../store";
+import { tagChipStyle } from "../lib/tags";
 
 const ov = computed(() => store.run?.overview ?? null);
 
@@ -46,7 +47,7 @@ function exportJson() {
         <h2 style="margin-top: 0">锁船表(按札)</h2>
         <div v-for="tag in ov.lock_plan" :key="tag.tag" style="margin-bottom: 18px">
           <h3>
-            <span class="tag-chip">{{ tag.tag }}</span>
+            <span class="tag-chip" :style="tagChipStyle(tag.tag)">{{ tag.tag }}</span>
             <span class="dim" style="font-size: 12px">{{ tag.maps }}</span>
           </h3>
           <table>
