@@ -1,0 +1,3 @@
+playwright>=1.40
+lzstring>=1.0.4
+requests>=2.31

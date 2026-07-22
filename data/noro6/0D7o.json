@@ -1,0 +1,896 @@
+{
+ "code": "0D7o",
+ "raw": {
+  "isDefense": false,
+  "airbaseInfo": {
+   "airbases": [
+    {
+     "items": [
+      {
+       "i": 406,
+       "s": 18
+      },
+      {
+       "i": 403,
+       "s": 18
+      },
+      {
+       "i": 403,
+       "s": 18
+      },
+      {
+       "i": 403,
+       "s": 18
+      }
+     ],
+     "battleTarget": [
+      4,
+      4
+     ],
+     "mode": 1
+    },
+    {
+     "items": [
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      }
+     ],
+     "battleTarget": [
+      0,
+      0
+     ],
+     "mode": 0
+    },
+    {
+     "items": [
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      }
+     ],
+     "battleTarget": [
+      0,
+      0
+     ],
+     "mode": 0
+    }
+   ],
+   "difficultyLevel": 0,
+   "isDefense": false
+  },
+  "battleInfo": {
+   "fleets": [
+    {
+     "enemies": [
+      {
+       "i": 1534
+      },
+      {
+       "i": 1534
+      },
+      {
+       "i": 1534
+      },
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      },
+      {
+       "i": 0
+      }
+     ],
+     "cellType": 1,
+     "formation": 4,
+     "radius": [
+      2
+     ],
+     "area": 621,
+     "nodeName": "A",
+     "mainFleetFormation": 5
+    },
+    {
+     "enemies": [
+      {
+       "i": 1534
+      },
+      {
+       "i": 1532
+      },
+      {
+       "i": 1532
+      },
+      {
+       "i": 2310
+      },
+      {
+       "i": 1776
+      },
+      {
+       "i": 0
+      }
+     ],
+     "cellType": 8,
+     "formation": 4,
+     "radius": [
+      1
+     ],
+     "area": 621,
+     "nodeName": "E",
+     "mainFleetFormation": 5
+    },
+    {
+     "enemies": [
+      {
+       "i": 1554
+      },
+      {
+       "i": 1575
+      },
+      {
+       "i": 1575
+      },
+      {
+       "i": 1575
+      },
+      {
+       "i": 1575
+      },
+      {
+       "i": 1575
+      }
+     ],
+     "cellType": 1,
+     "formation": 6,
+     "radius": [
+      2
+     ],
+     "area": 621,
+     "nodeName": "G",
+     "mainFleetFormation": 1
+    },
+    {
+     "enemies": [
+      {
+       "i": 1779
+      },
+      {
+       "i": 1764
+      },
+      {
+       "i": 1595
+      },
+      {
+       "i": 1592
+      },
+      {
+       "i": 1621
+      },
+      {
+       "i": 1621
+      }
+     ],
+     "cellType": 3,
+     "formation": 3,
+     "radius": [
+      3
+     ],
+     "area": 621,
+     "nodeName": "H",
+     "mainFleetFormation": 3
+    },
+    {
+     "enemies": [
+      {
+       "i": 1779
+      },
+      {
+       "i": 1764
+      },
+      {
+       "i": 1955
+      },
+      {
+       "i": 1592
+      },
+      {
+       "i": 1621
+      },
+      {
+       "i": 1621
+      }
+     ],
+     "cellType": 1,
+     "formation": 1,
+     "radius": [
+      4
+     ],
+     "area": 621,
+     "nodeName": "I",
+     "mainFleetFormation": 1
+    }
+   ],
+   "battleCount": 5,
+   "airRaidFleet": {
+    "enemies": [
+     {
+      "i": 0
+     },
+     {
+      "i": 0
+     },
+     {
+      "i": 0
+     },
+     {
+      "i": 0
+     },
+     {
+      "i": 0
+     },
+     {
+      "i": 0
+     }
+    ],
+    "cellType": 1,
+    "formation": 1,
+    "radius": [
+     0
+    ],
+    "area": 0,
+    "nodeName": "",
+    "mainFleetFormation": 1
+   }
+  },
+  "fleetInfo": {
+   "fleets": [
+    {
+     "ships": [
+      {
+       "i": 119,
+       "is": [
+        {
+         "i": 364
+        },
+        {
+         "i": 58,
+         "r": 10
+        },
+        {
+         "i": 58,
+         "r": 10
+        }
+       ],
+       "ac": true,
+       "es": false,
+       "re": false,
+       "hp": 43,
+       "as": 79,
+       "lu": 30,
+       "lv": 99,
+       "ex": {
+        "i": 412
+       },
+       "aa": 49
+      },
+      {
+       "i": 407,
+       "is": [
+        {
+         "i": 285
+        },
+        {
+         "i": 285
+        },
+        {
+         "i": 262
+        }
+       ],
+       "ac": true,
+       "es": false,
+       "re": false,
+       "hp": 38,
+       "as": 83,
+       "lu": 32,
+       "lv": 118,
+       "ex": {
+        "i": 412
+       },
+       "aa": 81
+      },
+      {
+       "i": 538,
+       "is": [
+        {
+         "i": 533,
+         "r": 10
+        },
+        {
+         "i": 533,
+         "r": 10
+        },
+        {
+         "i": 262
+        }
+       ],
+       "ac": true,
+       "es": false,
+       "re": false,
+       "hp": 43,
+       "as": 85,
+       "lu": 38,
+       "lv": 133,
+       "ex": {
+        "i": 450
+       },
+       "aa": 116
+      },
+      {
+       "i": 623,
+       "is": [
+        {
+         "i": 364
+        },
+        {
+         "i": 310,
+         "r": 10
+        },
+        {
+         "i": 518,
+         "r": 6
+        },
+        {
+         "i": 149
+        },
+        {
+         "i": 574
+        }
+       ],
+       "ac": true,
+       "es": false,
+       "re": false,
+       "hp": 47,
+       "as": 84,
+       "lu": 30,
+       "lv": 133,
+       "ex": {
+        "i": 33
+       },
+       "aa": 78
+      },
+      {
+       "i": 569,
+       "is": [
+        {
+         "i": 267,
+         "r": 10
+        },
+        {
+         "i": 366,
+         "r": 4
+        },
+        {
+         "i": 438
+        }
+       ],
+       "ac": true,
+       "es": false,
+       "re": false,
+       "hp": 38,
+       "as": 82,
+       "lu": 22,
+       "lv": 103,
+       "ex": {
+        "i": 517,
+        "r": 4
+       },
+       "aa": 73
+      },
+      {
+       "i": 649,
+       "is": [
+        {
+         "i": 286,
+         "r": 10
+        },
+        {
+         "i": 286,
+         "r": 10
+        },
+        {
+         "i": 262
+        }
+       ],
+       "ac": true,
+       "es": false,
+       "re": false,
+       "hp": 38,
+       "as": 83,
+       "lu": 12,
+       "lv": 125,
+       "ex": {
+        "i": 412,
+        "r": 8
+       },
+       "aa": 64
+      }
+     ],
+     "isUnion": false
+    },
+    {
+     "ships": [
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      }
+     ],
+     "isUnion": false
+    },
+    {
+     "ships": [
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      }
+     ],
+     "isUnion": false
+    },
+    {
+     "ships": [
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      },
+      {
+       "i": 0,
+       "is": [],
+       "ac": true,
+       "es": false,
+       "re": true,
+       "lv": 99,
+       "ex": {
+        "i": 0
+       }
+      }
+     ],
+     "isUnion": false
+    }
+   ],
+   "admiralLevel": 120,
+   "isUnion": false,
+   "fleetType": 0
+  },
+  "mainBattle": 4
+ },
+ "summary": {
+  "fleets": [
+   [
+    {
+     "id": 119,
+     "name": "北上改二",
+     "lv": 99,
+     "luck": 30,
+     "items": [
+      "甲標的 丁型改(蛟龍改)",
+      "61cm五連装(酸素)魚雷★10",
+      "61cm五連装(酸素)魚雷★10",
+      "[补强]水雷戦隊 熟練見張員"
+     ]
+    },
+    {
+     "id": 407,
+     "name": "潮改二",
+     "lv": 118,
+     "luck": 32,
+     "items": [
+      "61cm三連装(酸素)魚雷後期型",
+      "61cm三連装(酸素)魚雷後期型",
+      "HF/DF + Type144/147 ASDIC",
+      "[补强]水雷戦隊 熟練見張員"
+     ]
+    },
+    {
+     "id": 538,
+     "name": "冬月改",
+     "lv": 133,
+     "luck": 38,
+     "items": [
+      "10cm連装高角砲改+高射装置改★10",
+      "10cm連装高角砲改+高射装置改★10",
+      "HF/DF + Type144/147 ASDIC",
+      "[补强]13号対空電探改(後期型)"
+     ]
+    },
+    {
+     "id": 623,
+     "name": "夕張改二特",
+     "lv": 133,
+     "luck": 30,
+     "items": [
+      "甲標的 丁型改(蛟龍改)",
+      "14cm連装砲改★10",
+      "14cm連装砲改二★6",
+      "四式水中聴音機",
+      "SCレーダー改(後期調整型)",
+      "[补强]改良型艦本式タービン"
+     ]
+    },
+    {
+     "id": 569,
+     "name": "沖波改二",
+     "lv": 103,
+     "luck": 22,
+     "items": [
+      "12.7cm連装砲D型改二★10",
+      "12.7cm連装砲D型改三★4",
+      "三式水中探信儀改",
+      "[补强]逆探(E27)+22号対水上電探改四(後期調整型)"
+     ]
+    },
+    {
+     "id": 649,
+     "name": "高波改二",
+     "lv": 125,
+     "luck": 12,
+     "items": [
+      "61cm四連装(酸素)魚雷後期型★10",
+      "61cm四連装(酸素)魚雷後期型★10",
+      "HF/DF + Type144/147 ASDIC",
+      "[补强]水雷戦隊 熟練見張員"
+     ]
+    }
+   ]
+  ],
+  "airbases": [
+   {
+    "mode": 1,
+    "target": [
+     4,
+     4
+    ],
+    "items": [
+     "Do 217 K-2+Fritz-X",
+     "四式重爆 飛龍",
+     "四式重爆 飛龍",
+     "四式重爆 飛龍"
+    ]
+   }
+  ],
+  "enemy_nodes": [
+   {
+    "area": 621,
+    "node": "A",
+    "formation": 4,
+    "enemies": [
+     {
+      "id": 1534,
+      "name": "潜水カ級flagship"
+     },
+     {
+      "id": 1534,
+      "name": "潜水カ級flagship"
+     },
+     {
+      "id": 1534,
+      "name": "潜水カ級flagship"
+     }
+    ]
+   },
+   {
+    "area": 621,
+    "node": "E",
+    "formation": 4,
+    "enemies": [
+     {
+      "id": 1534,
+      "name": "潜水カ級flagship"
+     },
+     {
+      "id": 1532,
+      "name": "潜水カ級elite"
+     },
+     {
+      "id": 1532,
+      "name": "潜水カ級elite"
+     },
+     {
+      "id": 2310,
+      "name": "軽母ヌ級elite"
+     },
+     {
+      "id": 1776,
+      "name": "軽母ヌ級elite(鳥白)"
+     }
+    ]
+   },
+   {
+    "area": 621,
+    "node": "G",
+    "formation": 6,
+    "enemies": [
+     {
+      "id": 1554,
+      "name": "軽巡ホ級flagship"
+     },
+     {
+      "id": 1575,
+      "name": "駆逐イ級後期型"
+     },
+     {
+      "id": 1575,
+      "name": "駆逐イ級後期型"
+     },
+     {
+      "id": 1575,
+      "name": "駆逐イ級後期型"
+     },
+     {
+      "id": 1575,
+      "name": "駆逐イ級後期型"
+     },
+     {
+      "id": 1575,
+      "name": "駆逐イ級後期型"
+     }
+    ]
+   },
+   {
+    "area": 621,
+    "node": "H",
+    "formation": 3,
+    "enemies": [
+     {
+      "id": 1779,
+      "name": "軽母ヌ級改flagship(赤)"
+     },
+     {
+      "id": 1764,
+      "name": "軽母ヌ級flagship(赤)"
+     },
+     {
+      "id": 1595,
+      "name": "重巡ネ級elite"
+     },
+     {
+      "id": 1592,
+      "name": "軽巡ツ級elite"
+     },
+     {
+      "id": 1621,
+      "name": "駆逐イ級後期型elite"
+     },
+     {
+      "id": 1621,
+      "name": "駆逐イ級後期型elite"
+     }
+    ]
+   },
+   {
+    "area": 621,
+    "node": "I",
+    "formation": 1,
+    "enemies": [
+     {
+      "id": 1779,
+      "name": "軽母ヌ級改flagship(赤)"
+     },
+     {
+      "id": 1764,
+      "name": "軽母ヌ級flagship(赤)"
+     },
+     {
+      "id": 1955,
+      "name": "重巡ネ級改 夏mode[乙]"
+     },
+     {
+      "id": 1592,
+      "name": "軽巡ツ級elite"
+     },
+     {
+      "id": 1621,
+      "name": "駆逐イ級後期型elite"
+     },
+     {
+      "id": 1621,
+      "name": "駆逐イ級後期型elite"
+     }
+    ]
+   }
+  ],
+  "isUnion": false,
+  "admiralLevel": 120
+ }
+}
