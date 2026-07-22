@@ -3,30 +3,39 @@ import { ref, computed } from "vue";
 import { store, persist } from "../store";
 import { detectAndParse } from "../lib/parseBox";
 
-const pasteText = ref("");
+const shipText = ref("");
+const equipText = ref("");
 const message = ref("");
 const error = ref("");
 
-function doImport(text: string) {
-  error.value = "";
-  message.value = "";
-  if (!store.master) return;
+function doImport(text: string): boolean {
+  if (!store.master || !text.trim()) return false;
   try {
     const { box, message: msg } = detectAndParse(text, store.master, store.box);
     store.box = box;
     // 换 box 后旧分析结果作废
     store.run = null;
     persist();
-    message.value = msg;
-    pasteText.value = "";
+    message.value = message.value ? `${message.value};${msg}` : msg;
+    return true;
   } catch (e) {
     error.value = (e as Error).message;
+    return false;
   }
+}
+
+function importPasted() {
+  error.value = "";
+  message.value = "";
+  if (doImport(shipText.value)) shipText.value = "";
+  if (!error.value && doImport(equipText.value)) equipText.value = "";
 }
 
 async function onFile(ev: Event) {
   const f = (ev.target as HTMLInputElement).files?.[0];
   if (!f) return;
+  error.value = "";
+  message.value = "";
   doImport(await f.text());
   (ev.target as HTMLInputElement).value = "";
 }
@@ -94,16 +103,29 @@ const summary = computed(() => {
         <li><b>kckit box_snapshot.json</b>:poi + kckit 插件用户,直接选择 <span class="mono">~/.kckit/box_snapshot.json</span> 文件,一次导入全部。</li>
       </ul>
 
-      <textarea
-        v-model="pasteText"
-        rows="7"
-        placeholder='在此粘贴 JSON…(艦隊分析舰娘段形如 [{"api_ship_id":285,"api_lv":98,...}],装备段形如 [{"api_slotitem_id":124,"api_level":10}])'
-      ></textarea>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+        <label>
+          <span class="dim" style="font-size: 12px">艦娘コード(舰娘)</span>
+          <textarea
+            v-model="shipText"
+            rows="6"
+            placeholder='[{"id":1,"ship_id":285,"lv":98,"st":[…],"area":0,…}] 或 [{"api_ship_id":…,…}]'
+          ></textarea>
+        </label>
+        <label>
+          <span class="dim" style="font-size: 12px">装備コード(装备)</span>
+          <textarea
+            v-model="equipText"
+            rows="6"
+            placeholder='[{"id":124,"lv":10},…] 或 [{"api_slotitem_id":…,"api_level":…}]'
+          ></textarea>
+        </label>
+      </div>
       <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center">
-        <button :disabled="!pasteText.trim()" @click="doImport(pasteText)">导入粘贴内容</button>
+        <button :disabled="!shipText.trim() && !equipText.trim()" @click="importPasted">导入粘贴内容</button>
         <label class="secondary" style="cursor: pointer">
           <input type="file" accept=".json,application/json" style="display: none" @change="onFile" />
-          <span style="border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; background: var(--panel2)">选择 JSON 文件…</span>
+          <span style="border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; background: var(--panel2)">选择 JSON 文件…(kckit 快照)</span>
         </label>
       </div>
       <p v-if="message" class="ok">✓ {{ message }}</p>

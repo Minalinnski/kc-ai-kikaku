@@ -185,8 +185,16 @@ export interface RunCallbacks {
   onProgress: (stage: string, chars: number) => void;
 }
 
-function makeClient(apiKey: string): Anthropic {
-  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+function makeClient(key: string): Anthropic {
+  // sk-ant-oat…= OAuth token(Bearer + oauth beta 头);sk-ant-api…= 标准 API Key
+  if (key.startsWith("sk-ant-oat")) {
+    return new Anthropic({
+      authToken: key,
+      dangerouslyAllowBrowser: true,
+      defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" },
+    });
+  }
+  return new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
 }
 
 async function callStructured(
