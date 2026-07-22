@@ -186,15 +186,20 @@ export interface RunCallbacks {
 }
 
 function makeClient(key: string): Anthropic {
+  // 本地(dev/preview)走同源 /anthropic 代理,绕开 CORS 与组织 browser-access 限制;
+  // 线上部署时回退为直连(需组织允许浏览器请求)。
+  const isLocal = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname);
+  const baseURL = isLocal ? location.origin + "/anthropic" : undefined;
   // sk-ant-oat…= OAuth token(Bearer + oauth beta 头);sk-ant-api…= 标准 API Key
   if (key.startsWith("sk-ant-oat")) {
     return new Anthropic({
       authToken: key,
+      baseURL,
       dangerouslyAllowBrowser: true,
       defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" },
     });
   }
-  return new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+  return new Anthropic({ apiKey: key, baseURL, dangerouslyAllowBrowser: true });
 }
 
 async function callStructured(
@@ -338,10 +343,9 @@ export async function runAgent(
     }
   }
 
-  // 阶段2:逐图配装(锁船方案作为共享上下文,可被缓存)
+  // 阶段2:逐图配装(DAG:全部依赖锁船总方案;共享前缀走 prompt cache)
   const overviewJson = JSON.stringify(run.overview);
-  for (const mapId of maps) {
-    if (run.maps[mapId]) continue;
+  const runMap = async (mapId: string) => {
     callbacks.onStage(mapId, "start");
     try {
       const { result, usage } = await callStructured(
@@ -359,6 +363,13 @@ export async function runAgent(
       run.errors[mapId] = String((e as Error).message ?? e);
       callbacks.onStage(mapId, "error", run.errors[mapId]);
     }
+  };
+  const pending = maps.filter((m) => !run.maps[m]);
+  if (pending.length) {
+    // 第一张图先跑:把「语料+box+锁船方案」完整前缀写入缓存;
+    // 其余图并行发起,全部读缓存(并行发起相同前缀会各自付全额写缓存,故必须先热)。
+    await runMap(pending[0]);
+    await Promise.all(pending.slice(1).map(runMap));
   }
 
   run.finished_at = new Date().toISOString();
