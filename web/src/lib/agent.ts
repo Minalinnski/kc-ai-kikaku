@@ -136,9 +136,14 @@ export function renderGuideCorpus(pack: GuidePack): string {
     `大发dd分级表 — 内火: ${dd["内火"].join("、")} / 一拳: ${dd["一拳"].join("、")} / 大发: ${dd["大发"].join("、")}`,
   );
 
-  // 主攻略全文
+  // 主攻略全文(配图占位替换为视觉转录)
+  const notes = pack.image_notes ?? {};
+  const mainText = pack.main_text.replace(/\[IMAGE_(\d+)\]/g, (_m, idx) => {
+    const n = notes[idx];
+    return n ? `\n${n}\n` : "[配图:路线图或编成截图,编成精确数据见noro6机读数据]";
+  });
   parts.push(
-    `\n# 攻略正文全文([IMAGE_n]为原文配图占位,配装与陆航的精确数据见下方noro6机读数据)\n${pack.main_text}`,
+    `\n# 攻略正文全文(原文配图已替换为【】内的视觉转录;倍卡表数值为截图转录,个别小数可能有误,分组成员可信)\n${mainText}`,
   );
 
   // noro6 机读配装

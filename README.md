@@ -10,12 +10,14 @@
 ## 给使用者
 
 1. 打开部署好的网页,填入 Anthropic API Key(仅存浏览器本地,请求直连 Anthropic)。
-2. 导入你的 Box:
-   - **艦隊分析格式**(通用):舰娘 `[{"api_ship_id":…,"api_lv":…,"api_kyouka":[…],…}]` 与装备
-     `[{"api_slotitem_id":…,"api_level":…}]` 两段 JSON,分别粘贴(自动合并)。
-     noro6 制空権シミュレータ「艦娘/装備管理」、KC3Kai 数据导出等都能产出此格式。
+2. 导入你的 Box(三种格式自动识别):
+   - **noro6 制空権シミュレータ**(推荐):[艦娘/装備管理](https://noro6.github.io/kc-web/#/manager)
+     导出的艦娘コード `[{"id":…,"ship_id":…,"lv":…,"st":[…],"area":…}]` 与装備コード `[{"id":…,"lv":…}]`,
+     两段分别粘贴自动合并(运改修、活动札都识别)。
+   - **艦隊分析格式**(api_*):KC3Kai 等工具导出的舰娘/装备两段 JSON。
    - **kckit box_snapshot.json**(poi + kckit 插件用户):直接选文件。
-3. 「运行分析」→ 等 5~15 分钟 → 查看锁船总表与逐图配装。结果自动保存在浏览器,可导出 JSON。
+3. 「运行分析」→ 等 5~15 分钟 → 查看锁船总表与逐图配装。结果自动保存在浏览器;
+   跨设备用「存档导出/导入」迁移(刻意不做账号系统:纯静态站零后端零隐私负担,box 不出你自己的浏览器)。
 
 成本:一次完整分析约 $1~3(Opus 4.8)或 $0.5~1.5(Sonnet 4.6),攻略语料走 prompt cache。
 
@@ -23,7 +25,13 @@
 
 ## 给维护者:数据管线
 
-攻略数据是**预抓取**后随前端一起发布的(`web/public/data/`)。攻略更新后重跑:
+攻略数据是**预抓取**后随前端一起发布的(`web/public/data/`)。日常先跑更新检测:
+
+```bash
+python3 pipeline/check_update.py    # 比对线上正文与本地快照 hash;退出码 1=有更新
+```
+
+有更新时重跑归档管线:
 
 ```bash
 pip install -r pipeline/requirements.txt && playwright install chromium
@@ -33,9 +41,13 @@ python3 pipeline/fetch_doc.py main    "https://shimo.im/docs/rtk5YtznUfYtqbRH"  
 python3 pipeline/fetch_doc.py lowdiff "https://shimo.im/docs/odyAOtsnVIdVPzAf/"  # 低难度文档
 python3 pipeline/fetch_sheet.py lock  "https://shimo.im/sheets/GvhogtzTADp1mo1Q/MODOC/"  # 锁船表截图
 python3 pipeline/fetch_noro6.py                                           # 解码全部 noro6 短链
+python3 pipeline/transcribe_images.py                                     # VLM 转录新增配图(需 ANTHROPIC_API_KEY)
 # 若锁船表/多号机表有改动:对照 data/shimo/lock/ 截图更新 data/extracted/*.json
 python3 pipeline/build_guide_pack.py                                      # 汇编 → web/public/data/guide.json
 ```
+
+配图处理:陆航配置/倍卡表/E6编成等截图已由 VLM 转录进 `data/extracted/image_notes.json`,
+喂给 agent 的语料中 `[IMAGE_n]` 会替换为转录文本;网页「攻略资料」里仍显示原图。
 
 石墨文档抓取原理:headless Chromium 渲染(文档需处于「任何人可阅读」);锁船表是 canvas
 渲染,以超宽视口整表截图后人工/VLM 转录为 `data/extracted/*.json`;noro6 短链

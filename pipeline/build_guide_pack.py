@@ -52,6 +52,9 @@ def main():
     lock_table = json.loads((ROOT / "data" / "extracted" / "lock_table.json").read_text())
     dup_table = json.loads((ROOT / "data" / "extracted" / "dup_table.json").read_text())
     images = json.loads((main_dir / "images.json").read_text())
+    notes_f = ROOT / "data" / "extracted" / "image_notes.json"
+    image_notes = json.loads(notes_f.read_text()) if notes_f.exists() else {}
+    image_notes.pop("_meta", None)
 
     # noro6 配置:code → {section, summary}
     lines = doc.split("\n")
@@ -89,6 +92,7 @@ def main():
         "dup_table": dup_table,
         "noro6": noro6,
         "images": img_map,
+        "image_notes": image_notes,
     }
     out_f = OUT / "guide.json"
     out_f.write_text(json.dumps(pack, ensure_ascii=False))

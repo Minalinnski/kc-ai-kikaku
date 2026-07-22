@@ -69,6 +69,7 @@ export interface GuidePack {
     { section: string; url: string; summary: Noro6Summary }
   >;
   images: Record<string, { file: string; w: number; h: number }>;
+  image_notes: Record<string, string>;
 }
 
 export interface Noro6Ship {

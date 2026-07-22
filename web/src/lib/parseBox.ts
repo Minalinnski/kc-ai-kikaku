@@ -2,10 +2,13 @@ import type { Box, BoxShip, BoxEquip, Master } from "./types";
 
 /**
  * 玩家 box 导入解析。支持:
- * 1. kckit box_snapshot.json  — { ships: {id: {api_ship_id, api_lv, ...}}, equips: {...} }
- * 2. 艦隊分析格式             — 舰娘: [{api_ship_id, api_lv, api_kyouka, api_exp, api_slot_ex, api_sally_area}]
+ * 1. noro6 制空権シミュレータ「艦娘/装備管理」导出(推荐)
+ *    舰娘: [{id, ship_id, lv, st:[火,雷,空,甲,运,耐,潜], exp:[...], area, ex, sp, slots?}]
+ *    装备: [{id, lv}](id=装备图鉴id, lv=改修)
+ * 2. 艦隊分析格式(api_*)     — 舰娘: [{api_ship_id, api_lv, api_kyouka, api_exp, api_slot_ex, api_sally_area}]
  *                               装备: [{api_slotitem_id, api_level}]
- *    (两段可分别粘贴,或合并为 {ships:[...], equips:[...]})
+ * 3. kckit box_snapshot.json  — { ships: {id: {api_ship_id, api_lv, ...}}, equips: {...} }
+ * 两段式格式可分别粘贴(自动合并),或合并为 {ships:[...], equips:[...]}
  */
 
 export function detectAndParse(
@@ -47,7 +50,17 @@ export function detectAndParse(
 
   // 数组:判断是舰娘还是装备
   if (Array.isArray(data) && data.length) {
-    if (data[0].api_ship_id !== undefined) {
+    const first = data[0];
+    // noro6 舰娘代码: 有 ship_id + lv
+    if (first.ship_id !== undefined && first.api_ship_id === undefined) {
+      const ships = parseNoro6Ships(data, master);
+      const box = makeBox(ships, existing?.equips ?? [], "noro6 艦娘/装備管理");
+      return {
+        box,
+        message: `识别为 noro6 舰娘代码:${ships.length} 舰${existing?.equips.length ? "(保留已导入装备)" : ",请再粘贴装备代码"}`,
+      };
+    }
+    if (first.api_ship_id !== undefined) {
       const ships = parseFleetAnalysisShips(data, master);
       const box = makeBox(ships, existing?.equips ?? [], "艦隊分析格式");
       return {
@@ -55,7 +68,7 @@ export function detectAndParse(
         message: `识别为舰娘列表:${ships.length} 舰${existing?.equips.length ? "(保留已导入装备)" : ",请再粘贴装备 JSON"}`,
       };
     }
-    if (data[0].api_slotitem_id !== undefined) {
+    if (first.api_slotitem_id !== undefined) {
       const equips = parseFleetAnalysisEquips(data);
       const box = makeBox(existing?.ships ?? [], equips, "艦隊分析格式");
       return {
@@ -63,9 +76,22 @@ export function detectAndParse(
         message: `识别为装备列表:${equips.length} 件${existing?.ships.length ? "(保留已导入舰娘)" : ",请再粘贴舰娘 JSON"}`,
       };
     }
+    // noro6 装备代码: 只有 {id, lv}
+    if (first.id !== undefined && Object.keys(first).every((k) => k === "id" || k === "lv")) {
+      const equips: BoxEquip[] = data
+        .filter((e: any) => e.id)
+        .map((e: any) => ({ id: e.id, level: e.lv ?? 0 }));
+      const box = makeBox(existing?.ships ?? [], equips, existing?.source ?? "noro6 艦娘/装備管理");
+      return {
+        box,
+        message: `识别为 noro6 装备代码:${equips.length} 件${existing?.ships.length ? "(保留已导入舰娘)" : ",请再粘贴舰娘代码"}`,
+      };
+    }
   }
 
-  throw new Error("无法识别的格式。支持:kckit box_snapshot.json / 艦隊分析格式的舰娘或装备 JSON");
+  throw new Error(
+    "无法识别的格式。支持:noro6 艦娘/装備管理导出、艦隊分析格式(api_*)、kckit box_snapshot.json",
+  );
 }
 
 function parseKckitSnapshot(data: any, master: Master): Box {
@@ -86,6 +112,26 @@ function parseKckitSnapshot(data: any, master: Master): Box {
     equips.push({ id: e.api_slotitem_id, level: e.api_level ?? 0 });
   }
   return makeBox(ships, equips, "kckit box_snapshot");
+}
+
+function parseNoro6Ships(arr: any[], master: Master): BoxShip[] {
+  const ships: BoxShip[] = [];
+  for (const s of arr) {
+    const id = s.ship_id;
+    if (!id) continue;
+    const m = master.ships[String(id)];
+    // st = [火力,雷装,対空,装甲,運,耐久,対潜] 改修值
+    const luckMod = Array.isArray(s.st) ? (s.st[4] ?? 0) : 0;
+    const baseLuck = m?.luck ?? null;
+    ships.push({
+      id,
+      lv: s.lv ?? 1,
+      luck: baseLuck != null ? baseLuck + luckMod : null,
+      sally: s.area ?? 0,
+      locked: true,
+    });
+  }
+  return ships;
 }
 
 function parseFleetAnalysisShips(arr: any[], master: Master): BoxShip[] {
