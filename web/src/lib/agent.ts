@@ -46,6 +46,8 @@ const arr = (items: any) => ({ type: "array", items });
 const LOCK_SHIP_SCHEMA = obj({
   role: str,
   pick: str,
+  lv: num,
+  dup_no: str,
   owned: bool,
   level_note: str,
   alternatives: str,
@@ -117,6 +119,54 @@ const PREP_SCHEMA = obj({
   ),
   checklist: arr(obj({ task: str, when: str, priority: str })),
 });
+
+const SPRINT_SCHEMA = obj({
+  resource_assessment: obj({
+    verdict: str, detail: str,
+    weekly_targets: arr(obj({ week: str, focus: str, resource_goal: str })),
+  }),
+  kaishu_plan: arr(obj({
+    item: str, from_to: str, per_attempt_cost: str, fodder_supply: str,
+    helper: str, est_days: str, priority: str, note: str,
+  })),
+  development_plan: arr(obj({ target: str, recipe: str, secretary: str, cadence: str, note: str })),
+  expedition_plan: arr(obj({ name: str, why: str, cadence: str })),
+  leveling_plan: arr(obj({
+    ship: str, from: str, to: str, method: str, est_time: str, priority: str, note: str,
+  })),
+  farming_plan: arr(obj({ target: str, where: str, feasibility: str, advice: str })),
+  weekly_plan: arr(obj({ week: str, theme: str, actions: arr(str) })),
+  qa: arr(obj({ question: str, answer: str, confidence: str })),
+  cautions: arr(str),
+});
+
+function sprintTask(run: AgentRun, inputs: { resources: string; questions: string }): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `# 任务:冲刺计划(改修 / 每日开发 / 远征 / 练级 / 捞船 / 周排程)
+
+以上面的锁船总方案为基准,结合战前布局缺口清单与玩家自报现状,制定从今天(${today})到活动结束(活动 2026-07-08 开始,准确结束日未公布,按余下约一个月规划、收尾留 1 周余量)的冲刺计划。
+
+<战前布局缺口清单>
+${JSON.stringify(run.prep ?? {})}
+</战前布局缺口清单>
+
+<玩家自报现状(资源等)>
+${inputs.resources || "未提供,按中等储备假设,并在建议中说明如何确认。"}
+</玩家自报现状>
+${inputs.questions ? `\n<玩家的具体问题(逐条回答进 qa,并据此调整计划)>\n${inputs.questions}\n</玩家的具体问题>\n` : ""}
+输出:
+1. resource_assessment:现有资源支撑推荐难度够不够;weekly_targets 给每周资源净目标(打图消耗 vs 远征回血)。
+2. kaishu_plan:一个月内现实可完成的改修/更新路线。每条必须有 per_attempt_cost(每次吃的螺丝+装备素材)与 fodder_supply(素材来自 box 存量还是每日开发,数量够不够);不值得做的不要列。
+3. development_plan:每日开发排程(目标装备/配方/秘书舰/频次);配方只写确有把握的经典配方并标注置信度;開発資材若是瓶颈要单独指出获取方式。
+4. expedition_plan:远征方案(编号+名称确定的才写,不确定写类型)。
+5. leveling_plan:练度缺口的可行练法与耗时;明确哪些赶不上该放弃转平替,给出放弃红线。
+6. farming_plan:缺舰能否在本活动补(通关奖励/捞船段/各图drop,以语料为准)或通常建造;每条给结论。
+7. weekly_plan:逐周主题+行动清单,与锁船方案出击顺序自洽。
+8. qa:逐条回答玩家问题(question 抄原话;没有问题则输出空数组)。
+9. cautions:最容易翻车的 3~6 点。
+
+规则:priority 用 P0/P1/P2;数量以 box 为准;akashi 改修表细节(二番舰/曜日)拿不准一律写「以akashi改修表当日为准」,严禁编造;改修/开发的资源消耗计入资源大盘;时间按每天在线 1~2 小时的社会人节奏估算。`;
+}
 
 const PREP_TASK = `# 任务:活动战前布局 —— 缺口清单与准备建议
 
@@ -339,7 +389,7 @@ const OVERVIEW_TASK = `# 任务:个性化锁船总方案
 
 1. difficulty — 推荐难度选择(结合box强度评估,如「全甲」「E4乙其余甲」),附一句话理由。
 2. overview — 全局分析(markdown,600~1500字):这个box打本次活动的强弱点;攻略点名的关键倍卡舰/摸手持有情况;关键多号机持有情况(黎塞留/让巴尔、大和武藏、矢矧、秋月初月、莫加多尔、J驱等);与攻略默认阵容的主要差异和整体策略。
-3. lock_plan — 按攻略锁船表的全部13个札逐一输出:tag=札名;maps=适用海域阶段;ships=该札每个位置(覆盖攻略原表的所有行):role=攻略原文的角色描述,pick=推荐这个玩家锁的具体舰(用box中的确切形态名),owned=box里是否有可用舰,level_note=练度/改造评估(如「Lv55偏低,建议练到70+」「需先改造,当前Lv48/需50」,没问题则写「OK」),alternatives=box内可行的备选,reason=选择理由(引用攻略逻辑);notes=该札整体注意事项。
+3. lock_plan — 按攻略锁船表的全部13个札逐一输出:tag=札名;maps=适用海域阶段;ships=该札每个位置(覆盖攻略原表的所有行):role=攻略原文的角色描述,pick=推荐锁的舰,**只写图鉴精确形态名(如「北上改二」),严禁在名字里夹带 Lv/括号/号机等修饰**,lv=该舰在box中的当前等级(数字;未持有填0),dup_no=多号机标记(1号机填空字符串"",否则如"2号机"),owned=box里是否有可用舰,level_note=练度/改造评估(如「Lv55偏低,建议练到70+」「需先改造,当前Lv48/需50」,没问题则写「OK」),alternatives=box内可行的备选,reason=选择理由(引用攻略逻辑);notes=该札整体注意事项。
 4. dup_plan — 攻略多号机表涉及的舰,按玩家实际持有数给出分配(ship=舰名,owned_count=持有数,assignment=分配方案)。
 5. prep — 开打前准备清单,按优先级排列(练级/改造/改修/远征攒资源等,具体到舰名和目标等级)。
 6. risks — 风险与注意事项(锁船不可逆的高风险点、数量冲突、攻略更新可能影响的点)。
@@ -357,7 +407,7 @@ ${overviewJson}
 现在为 ${mapId} 的每个阶段输出具体编成与配装。覆盖攻略中 ${mapId} 的全部小节:各开路(P*开路)、各正攻阶段(P1/P2/...)、解密、削甲。要求:
 
 - phases[].phase=阶段名(与攻略小节一致);tag=所贴的札;fleet_type=单舰队/游击/联合(水打/机动/运输);route=路线(照抄攻略,含节点类型);formation=阵型序列。
-- fleets=每支舰队逐位落实:ship=玩家box中的确切舰名形态;equips=逐槽装备(用box里的确切装备名,标注建议星级,owned=玩家是否有该装备;没有则给box内最接近替代并在note说明损失);why=该位选择理由(倍卡/带路/工具人等,引用攻略)。开路/解密等简单阶段可给简化编成(舰种要求+推荐舰),但正攻阶段必须逐槽配装。
+- fleets=每支舰队逐位落实:ship=玩家box中的确切舰名形态(**只写图鉴精确名,不带Lv/括号/号机修饰,练度写进level_note**);equips=逐槽装备(用box里的确切装备名,标注建议星级,owned=玩家是否有该装备;没有则给box内最接近替代并在note说明损失);why=该位选择理由(倍卡/带路/工具人等,引用攻略)。开路/解密等简单阶段可给简化编成(舰种要求+推荐舰),但正攻阶段必须逐槽配装。
 - lbas=基地航空队,按玩家实际陆攻库存现实化(squad=第N队,planes=4机位,target=目标点/防空)。
 - support=支援舰队建议;notes=该阶段其他要点(制空阈值/索敌/拉烟/退避等,照抄攻略数字);warnings=这个玩家在该阶段的具体缺口;noro6_ref=对应的攻略noro6链接(如有)。
 - map_notes=该图整体注意(削甲是否推荐、与其他图的锁船联动)。
@@ -465,6 +515,10 @@ export async function runAgent(
   } else if (needPrep) {
     await runPrep();
   }
+  // 并发完成顺序不定,回写成 E1→E5 正常顺序
+  run.maps = Object.fromEntries(
+    Object.keys(run.maps).sort().map((k) => [k, run.maps[k]]),
+  );
 
   // 阶段3:机器校验 → 自动修复回路(只改冲突位)→ 复检
   try {
@@ -560,6 +614,43 @@ ${JSON.stringify(affectedLocks)}
 
   run.finished_at = new Date().toISOString();
   return run;
+}
+
+/** 冲刺计划:单次调用,依赖已完成的 run(overview+prep);结果写入 run.sprint 并返回 */
+export async function runSprint(
+  apiKey: string,
+  model: string,
+  pack: GuidePack,
+  box: Box,
+  master: Master,
+  run: AgentRun,
+  inputs: { resources: string; questions: string },
+  callbacks: RunCallbacks,
+): Promise<any> {
+  if (!run.overview) throw new Error("需要先完成锁船总方案");
+  const client = makeClient(apiKey);
+  const guideCorpus = renderGuideCorpus(pack);
+  const boxText = compactBoxText(box, master);
+  callbacks.onStage("sprint", "start");
+  try {
+    const { result, usage } = await callStructured(
+      client, model, guideCorpus, boxText,
+      `<锁船总方案参考>\n${JSON.stringify(run.overview)}\n</锁船总方案参考>`,
+      sprintTask(run, inputs), SPRINT_SCHEMA, 64000,
+      (c) => callbacks.onProgress("sprint", c),
+    );
+    accUsage(run, usage);
+    run.sprint = {
+      ...result,
+      generated_at: new Date().toISOString(),
+      resources_note: inputs.resources || "未提供",
+    };
+    callbacks.onStage("sprint", "done");
+    return run.sprint;
+  } catch (e) {
+    callbacks.onStage("sprint", "error", String((e as Error).message ?? e));
+    throw e;
+  }
 }
 
 /** 粗略成本估算(美元) */

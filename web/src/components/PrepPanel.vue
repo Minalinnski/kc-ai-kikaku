@@ -1,9 +1,69 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { store } from "../store";
+import { computed, ref, onUnmounted } from "vue";
+import { store, persist, apiKey, loadLatestRun } from "../store";
+import { runSprint } from "../lib/agent";
 
 const prep = computed(() => store.run?.prep ?? null);
 const sprint = computed(() => store.run?.sprint ?? null);
+
+// ── 冲刺计划表单 ──
+const base = import.meta.env.BASE_URL;
+const resources = ref("");
+const questions = ref("");
+const running = ref(false);
+const progress = ref(0);
+const sprintErr = ref("");
+let pollTimer: ReturnType<typeof setTimeout> | null = null;
+onUnmounted(() => { if (pollTimer) clearTimeout(pollTimer); });
+
+const canSprint = computed(() => !!store.run?.overview && !running.value && !store.running);
+
+async function genSprint() {
+  sprintErr.value = "";
+  running.value = true;
+  progress.value = 0;
+  try {
+    if (store.server) {
+      const r = await fetch(base + "api/sprint", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ resources: resources.value, questions: questions.value }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}) as any)).error ?? `启动失败(${r.status})`);
+      await pollSprint();
+    } else {
+      if (!apiKey() || !store.box || !store.master || !store.pack || !store.run) throw new Error("本地模式需要 key 与完整数据");
+      await runSprint(apiKey(), store.run.model, store.pack, store.box, store.master, store.run,
+        { resources: resources.value, questions: questions.value }, {
+          onStage() {},
+          onProgress: (_s, c) => (progress.value = c),
+        });
+      persist();
+      running.value = false;
+    }
+  } catch (e) {
+    sprintErr.value = String((e as Error).message ?? e);
+    running.value = false;
+  }
+}
+
+async function pollSprint(): Promise<void> {
+  const r = await fetch(base + "api/run/status").catch(() => null);
+  if (r?.ok) {
+    const st = await r.json();
+    progress.value = st.stages?.sprint?.chars ?? progress.value;
+    if (st.status === "running") {
+      pollTimer = setTimeout(pollSprint, 4000);
+      return;
+    }
+    if (st.status === "error" && st.error) sprintErr.value = st.error;
+    if (st.status === "done") {
+      store.run = null; // 强制以服务器副本为准
+      await loadLatestRun();
+    }
+  }
+  running.value = false;
+}
 
 const prioClass = (p: string) =>
   p?.startsWith("P0") ? "p0" : p?.startsWith("P1") ? "p1" : "p2";
@@ -97,7 +157,29 @@ const prioSort = (rows: any[]): any[] =>
       </div>
     </template>
 
-    <!-- 冲刺计划(一次性追加分析,存在才显示) -->
+    <!-- 冲刺计划生成表单 -->
+    <div class="panel" v-if="store.run?.overview && !store.snapshot">
+      <h2 style="margin-top: 0">{{ sprint ? "重新生成冲刺计划" : "生成冲刺计划(追加分析)" }}</h2>
+      <p class="dim" style="font-size: 13px">
+        基于已完成的锁船方案+缺口清单,产出改修排期(含消耗)/每日开发/远征/练级/捞船/逐周计划。
+        约 3~6 分钟,占用 1 次每日额度。资源写得越准,计划越可信。
+      </p>
+      <p style="margin: 6px 0">
+        <input v-model="resources" :disabled="running" style="width: 100%"
+          placeholder="当前资源与储备,如:油35万/弹32万/钢22万/铝18万,桶1800,螺丝70" />
+      </p>
+      <textarea v-model="questions" :disabled="running" rows="2"
+        placeholder="(可选)想让 AI 顺便回答的问题,一行一个。如:榛名一定要切丙吗?"></textarea>
+      <p style="display: flex; gap: 10px; align-items: center">
+        <button :disabled="!canSprint" @click="genSprint">
+          {{ running ? "生成中…" : sprint ? "重新生成" : "生成冲刺计划" }}
+        </button>
+        <span v-if="running" class="dim">已生成 {{ (progress / 1000).toFixed(1) }}k 字符</span>
+        <span v-if="sprintErr" class="err">✗ {{ sprintErr }}</span>
+      </p>
+    </div>
+
+    <!-- 冲刺计划(存在才显示) -->
     <template v-if="sprint">
       <div class="panel sprint-head">
         <h2 style="margin-top: 0">一个月冲刺计划</h2>

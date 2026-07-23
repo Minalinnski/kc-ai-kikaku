@@ -182,6 +182,21 @@ const server = createServer(async (req, res) => {
       return sendJSON(res, e.code ?? 500, { error: e.msg ?? String(e) });
     }
   }
+  // 冲刺计划(追加分析):依赖已完成的跑批
+  if (path === "/api/sprint" && req.method === "POST") {
+    if (!user) return sendJSON(res, 401, { error: "未登录" });
+    let body;
+    try { body = JSON.parse((await readBody(req)).toString() || "{}"); } catch { body = {}; }
+    try {
+      await jobManager.startSprint(user, {
+        resources: String(body.resources ?? "").slice(0, 2000),
+        questions: String(body.questions ?? "").slice(0, 4000),
+      });
+      return sendJSON(res, 202, { ok: true });
+    } catch (e) {
+      return sendJSON(res, e.code ?? 500, { error: e.msg ?? String(e) });
+    }
+  }
   if (path === "/api/run/status") {
     if (!user) return sendJSON(res, 401, { error: "未登录" });
     return sendJSON(res, 200, jobManager.status(user));

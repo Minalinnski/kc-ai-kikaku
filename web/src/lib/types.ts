@@ -98,6 +98,10 @@ export interface Noro6Summary {
 export interface LockPlanShip {
   role: string;
   pick: string;
+  /** 当前等级(0=未持有);旧存档无此字段 */
+  lv?: number;
+  /** 多号机标记(""=1号机);旧存档无此字段 */
+  dup_no?: string;
   owned: boolean;
   level_note: string;
   alternatives: string;

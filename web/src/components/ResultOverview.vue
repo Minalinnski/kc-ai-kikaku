@@ -64,7 +64,9 @@ function exportJson() {
               <tr v-for="(s, i) in tag.ships" :key="i">
                 <td>{{ s.role }}</td>
                 <td :class="s.owned ? '' : 'err'">
-                  {{ s.pick }}<span v-if="!s.owned" title="Box 中缺失"> ⚠缺</span>
+                  {{ s.pick }}<span v-if="s.lv" class="dim" style="font-size: 11px"> Lv{{ s.lv }}</span><span
+                    v-if="s.dup_no" class="dim" style="font-size: 11px">·{{ s.dup_no }}</span><span
+                    v-if="!s.owned" title="Box 中缺失"> ⚠缺</span>
                 </td>
                 <td :class="s.level_note === 'OK' ? 'ok' : 'warn'">{{ s.level_note }}</td>
                 <td class="dim">{{ s.alternatives }}</td>

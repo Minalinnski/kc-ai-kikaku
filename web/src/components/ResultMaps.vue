@@ -10,7 +10,7 @@ function noro6Check(ph: PlanPhase): string | null {
   try { return phaseToNoro6Url(ph, store.box, store.master); } catch { return null; }
 }
 
-const mapIds = computed(() => Object.keys(store.run?.maps ?? {}));
+const mapIds = computed(() => Object.keys(store.run?.maps ?? {}).sort());
 const active = ref("");
 const cur = computed(() => {
   const id = active.value || mapIds.value[0];

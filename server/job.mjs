@@ -109,11 +109,61 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
     return { started: true };
   }
 
+  /** 冲刺计划:轻量单阶段 job,依赖已完成的跑批存档;结果并入 run.sprint */
+  async function startSprint(user, { resources, questions }) {
+    if (jobs.get(user)?.status === "running") throw { code: 409, msg: "已有任务在运行中" };
+    const prev = loadSave(user);
+    if (!prev?.run?.overview) throw { code: 400, msg: "尚无完成的分析,先运行完整分析" };
+    const today = new Date().toISOString().slice(0, 10);
+    quota[user] ??= {};
+    if ((quota[user][today] ?? 0) >= quotaPerDay) {
+      throw { code: 429, msg: `今日运行额度已用完(${quotaPerDay} 次/天)` };
+    }
+    const { box, run } = prev;
+    const job = {
+      status: "running", stages: {}, startedAt: Date.now(), model: run.model,
+      maps: [], type: "sprint", error: null, events: [], runRef: run,
+    };
+    jobs.set(user, job);
+    quota[user][today] = (quota[user][today] ?? 0) + 1;
+    writeFileSync(quotaFile, JSON.stringify(quota));
+
+    (async () => {
+      try {
+        const { runSprint } = await lib();
+        await runSprint(apiKey, run.model, pack, box, master, run,
+          { resources: resources ?? "", questions: questions ?? "" }, {
+            onStage(stage, status, detail) {
+              const prevS = job.stages[stage] ?? {};
+              const now = Date.now();
+              job.stages = { ...job.stages, [stage]: {
+                ...prevS, status, detail, t0: prevS.t0 ?? now,
+                t1: status === "done" || status === "error" ? now : prevS.t1,
+              } };
+              job.events.push({ t: now, stage, status, detail: detail ?? null });
+              console.log(`[job:${user}] ${stage} ${status} ${detail ?? ""}`);
+            },
+            onProgress(stage, chars) {
+              job.stages = { ...job.stages, [stage]: { ...job.stages[stage], status: "running", chars } };
+            },
+          });
+        writeFileSync(savePath(user), JSON.stringify({ _type: "kc-event-advisor-save", box, run }));
+        job.status = "done";
+        console.log(`[job:${user}] sprint done`);
+      } catch (e) {
+        job.status = "error";
+        job.error = String(e?.message ?? e);
+        console.error(`[job:${user}] sprint crashed:`, job.error);
+      }
+    })();
+    return { started: true };
+  }
+
   function status(user) {
     const j = jobs.get(user);
     if (!j) return { status: "idle", hasRun: existsSync(savePath(user)) };
     return {
-      status: j.status, stages: j.stages, startedAt: j.startedAt,
+      status: j.status, stages: j.stages, startedAt: j.startedAt, type: j.type ?? "full",
       model: j.model, maps: j.maps, error: j.error, hasRun: existsSync(savePath(user)),
       events: j.events, usage: j.runRef?.usage ?? null, verify: j.runRef?.verify ?? null,
     };
@@ -123,5 +173,5 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
     return existsSync(savePath(user)) ? readFileSync(savePath(user)) : null;
   }
 
-  return { start, status, latest };
+  return { start, startSprint, status, latest };
 }
