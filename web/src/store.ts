@@ -97,18 +97,25 @@ export async function logout() {
   store.user = null;
 }
 
-/** 本地没有结果时,自动载入服务器上最近一次跑批(cli_run.mts 产物) */
+/** 自动载入服务器最近一次跑批;服务器副本更新(重跑/追加分析)时覆盖本地 */
 export async function loadLatestRun() {
-  if (!store.server || !store.authed || store.run) return;
+  if (!store.server || !store.authed) return;
   try {
     const r = await fetch(import.meta.env.BASE_URL + "api/latest-run");
     if (!r.ok) return;
     const data = await r.json();
     if (data?._type === "kc-event-advisor-save" && data.run?.overview) {
-      if (!store.box && data.box) store.box = data.box;
-      store.run = data.run;
-      persist();
-      console.log("已自动载入服务器跑批结果");
+      const local = store.run;
+      const fresher =
+        !local ||
+        data.run.finished_at !== local.finished_at ||
+        (!!data.run.sprint && JSON.stringify(data.run.sprint) !== JSON.stringify(local.sprint));
+      if (fresher) {
+        if (!store.box && data.box) store.box = data.box;
+        store.run = data.run;
+        persist();
+        console.log("已载入服务器最新跑批结果");
+      }
     }
   } catch {}
 }

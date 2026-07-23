@@ -28,13 +28,16 @@ export interface VerifyResult {
 // ---- 名称解析 ----
 
 function stripShipName(raw: string): string[] {
-  // 生成候选:原文 → 去尾部括号(可能多层) → 去 Lv 等
+  // 生成候选:原文 → 逐层剥尾部修饰(括号 / 空格Lv后缀 / N号机)直到收敛
   const cands = [raw.trim()];
   let s = raw.trim();
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 6; i++) {
+    const prev = s;
     const m = s.match(/^(.*?)[((][^(()))]*[))]\s*$/);
-    if (!m) break;
-    s = m[1].trim();
+    if (m) s = m[1].trim();
+    // 「鳳翔改二 Lv145」「北上改二 Lv129 2号机」式空格后缀
+    s = s.replace(/\s+Lv\.?\s*\d+.*$/i, "").replace(/\s+\d+号[机機]?\s*$/, "").trim();
+    if (s === prev) break;
     if (s) cands.push(s);
   }
   return cands;

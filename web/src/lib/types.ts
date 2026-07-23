@@ -176,6 +176,8 @@ export interface AgentRun {
   finished_at?: string;
   overview?: OverviewResult;
   prep?: PrepResult;
+  /** 一次性追加分析(冲刺计划:改修/开发/远征/练级/捞船/周计划),结构宽松 */
+  sprint?: any;
   maps: Record<string, MapResult>;
   errors: Record<string, string>;
   usage: { input: number; output: number; cache_read: number; cache_write: number };

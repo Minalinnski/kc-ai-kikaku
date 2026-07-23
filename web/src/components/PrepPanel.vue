@@ -3,10 +3,11 @@ import { computed } from "vue";
 import { store } from "../store";
 
 const prep = computed(() => store.run?.prep ?? null);
+const sprint = computed(() => store.run?.sprint ?? null);
 
 const prioClass = (p: string) =>
   p?.startsWith("P0") ? "p0" : p?.startsWith("P1") ? "p1" : "p2";
-const prioSort = <T extends { priority: string }>(rows: T[]) =>
+const prioSort = (rows: any[]): any[] =>
   [...rows].sort((a, b) => (a.priority ?? "P9").localeCompare(b.priority ?? "P9"));
 </script>
 
@@ -93,6 +94,120 @@ const prioSort = <T extends { priority: string }>(rows: T[]) =>
             </tr>
           </tbody>
         </table>
+      </div>
+    </template>
+
+    <!-- 冲刺计划(一次性追加分析,存在才显示) -->
+    <template v-if="sprint">
+      <div class="panel sprint-head">
+        <h2 style="margin-top: 0">一个月冲刺计划</h2>
+        <p class="dim" style="font-size: 12px">
+          追加分析,生成于 {{ sprint.generated_at?.slice(0, 10) }} · 基于当时资源:{{ sprint.resources_note }}
+        </p>
+        <p style="white-space: pre-wrap"><b>资源判定:</b>{{ sprint.resource_assessment?.verdict }}</p>
+        <p class="dim" style="white-space: pre-wrap; font-size: 13px">{{ sprint.resource_assessment?.detail }}</p>
+        <table v-if="sprint.resource_assessment?.weekly_targets?.length">
+          <thead><tr><th>周</th><th>主题</th><th>资源目标</th></tr></thead>
+          <tbody>
+            <tr v-for="(w, i) in sprint.resource_assessment.weekly_targets" :key="i">
+              <td style="white-space: nowrap">{{ w.week }}</td><td>{{ w.focus }}</td><td>{{ w.resource_goal }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel" v-if="sprint.qa?.length">
+        <h2 style="margin-top: 0">追问答疑</h2>
+        <div v-for="(q, i) in sprint.qa" :key="i" style="margin-bottom: 12px">
+          <p style="margin: 0 0 4px"><b>Q:{{ q.question }}</b> <span class="dim" style="font-size: 11px">(置信度 {{ q.confidence }})</span></p>
+          <p style="margin: 0; white-space: pre-wrap">{{ q.answer }}</p>
+        </div>
+      </div>
+
+      <div class="panel" v-if="sprint.kaishu_plan?.length">
+        <h2 style="margin-top: 0">改修计划(含消耗)</h2>
+        <table>
+          <thead><tr><th></th><th>项目</th><th>路线</th><th>单次消耗</th><th>素材来源</th><th>二番舰</th><th>预计</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr v-for="(k, i) in prioSort(sprint.kaishu_plan)" :key="i">
+              <td><span class="prio" :class="prioClass(k.priority)">{{ k.priority }}</span></td>
+              <td><b>{{ k.item }}</b></td>
+              <td>{{ k.from_to }}</td>
+              <td>{{ k.per_attempt_cost }}</td>
+              <td>{{ k.fodder_supply }}</td>
+              <td>{{ k.helper }}</td>
+              <td style="white-space: nowrap">{{ k.est_days }}</td>
+              <td>{{ k.note }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel" v-if="sprint.development_plan?.length || sprint.expedition_plan?.length">
+        <h2 style="margin-top: 0">每日开发 · 远征</h2>
+        <table v-if="sprint.development_plan?.length">
+          <thead><tr><th>开发目标</th><th>配方</th><th>秘书舰</th><th>频次</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr v-for="(d, i) in sprint.development_plan" :key="i">
+              <td><b>{{ d.target }}</b></td><td class="mono-cell">{{ d.recipe }}</td>
+              <td>{{ d.secretary }}</td><td>{{ d.cadence }}</td><td>{{ d.note }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table v-if="sprint.expedition_plan?.length">
+          <thead><tr><th>远征</th><th>目的</th><th>节奏</th></tr></thead>
+          <tbody>
+            <tr v-for="(e, i) in sprint.expedition_plan" :key="i">
+              <td><b>{{ e.name }}</b></td><td>{{ e.why }}</td><td>{{ e.cadence }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel" v-if="sprint.leveling_plan?.length">
+        <h2 style="margin-top: 0">练级计划</h2>
+        <table>
+          <thead><tr><th></th><th>舰</th><th>当前→目标</th><th>练法</th><th>预计</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr v-for="(g, i) in prioSort(sprint.leveling_plan)" :key="i">
+              <td><span class="prio" :class="prioClass(g.priority)">{{ g.priority }}</span></td>
+              <td><b>{{ g.ship }}</b></td>
+              <td class="mono-cell">{{ g.from }} → {{ g.to }}</td>
+              <td>{{ g.method }}</td>
+              <td style="white-space: nowrap">{{ g.est_time }}</td>
+              <td>{{ g.note }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel" v-if="sprint.farming_plan?.length">
+        <h2 style="margin-top: 0">捞船 · 补舰机会</h2>
+        <table>
+          <thead><tr><th>目标</th><th>哪里补</th><th>可行性</th><th>建议</th></tr></thead>
+          <tbody>
+            <tr v-for="(f, i) in sprint.farming_plan" :key="i">
+              <td><b>{{ f.target }}</b></td><td>{{ f.where }}</td><td>{{ f.feasibility }}</td><td>{{ f.advice }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel" v-if="sprint.weekly_plan?.length">
+        <h2 style="margin-top: 0">周计划</h2>
+        <div v-for="(w, i) in sprint.weekly_plan" :key="i" style="margin-bottom: 12px">
+          <p style="margin: 0 0 4px"><b>{{ w.week }}</b> — {{ w.theme }}</p>
+          <ul style="margin: 0 0 0 18px; padding: 0">
+            <li v-for="(a, j) in w.actions" :key="j" style="margin: 2px 0">{{ a }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel" v-if="sprint.cautions?.length">
+        <h2 style="margin-top: 0">翻车预警</h2>
+        <ul style="margin: 0 0 0 18px; padding: 0">
+          <li v-for="(c, i) in sprint.cautions" :key="i" style="margin: 4px 0">{{ c }}</li>
+        </ul>
       </div>
     </template>
   </div>
