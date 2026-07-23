@@ -2,6 +2,13 @@
 import { computed, ref } from "vue";
 import { store } from "../store";
 import { tagChipStyle } from "../lib/tags";
+import { phaseToNoro6Url } from "../lib/noro6export";
+import type { PlanPhase } from "../lib/types";
+
+function noro6Check(ph: PlanPhase): string | null {
+  if (!store.box || !store.master) return null;
+  try { return phaseToNoro6Url(ph, store.box, store.master); } catch { return null; }
+}
 
 const mapIds = computed(() => Object.keys(store.run?.maps ?? {}));
 const active = ref("");
@@ -83,8 +90,10 @@ const cur = computed(() => {
           <ul v-if="ph.warnings?.length">
             <li v-for="(w, wi) in ph.warnings" :key="wi" class="warn">⚠ {{ w }}</li>
           </ul>
-          <p v-if="ph.noro6_ref" style="font-size: 12px">
-            <a :href="ph.noro6_ref" target="_blank">攻略原配装(noro6)↗</a>
+          <p style="font-size: 12px">
+            <a v-if="noro6Check(ph)" :href="noro6Check(ph)!" target="_blank">在 noro6 打开本方案(制空/索敌核算)↗</a>
+            <span v-if="ph.noro6_ref && noro6Check(ph)" class="dim"> · </span>
+            <a v-if="ph.noro6_ref" :href="ph.noro6_ref" target="_blank">攻略原配装(noro6)↗</a>
           </p>
         </div>
       </div>

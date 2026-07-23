@@ -7,6 +7,7 @@ import RunPanel from "./components/RunPanel.vue";
 import ResultOverview from "./components/ResultOverview.vue";
 import ResultMaps from "./components/ResultMaps.vue";
 import GuideView from "./components/GuideView.vue";
+import TagBoard from "./components/TagBoard.vue";
 
 const tab = ref("import");
 
@@ -15,7 +16,8 @@ const tabs = computed(() => [
   { id: "run", label: "② 运行分析", badge: store.running ? "运行中" : "" },
   { id: "overview", label: "③ 锁船总表", badge: store.run?.overview ? "✓" : "" },
   { id: "maps", label: "④ 逐图配装", badge: Object.keys(store.run?.maps ?? {}).length ? `${Object.keys(store.run!.maps).length}图` : "" },
-  { id: "guide", label: "⑤ 攻略资料" },
+  { id: "board", label: "⑤ 贴条·校验" },
+  { id: "guide", label: "⑥ 攻略资料" },
 ]);
 
 // 活动横幅(攻略原文配图,idx=3)
@@ -113,6 +115,7 @@ async function doLogin() {
       <RunPanel v-show="tab === 'run'" @done="tab = 'overview'" />
       <ResultOverview v-show="tab === 'overview'" />
       <ResultMaps v-show="tab === 'maps'" />
+      <TagBoard v-show="tab === 'board'" />
       <GuideView v-show="tab === 'guide'" />
     </template>
     </template>
