@@ -256,7 +256,7 @@ function makeClient(key: string): Anthropic {
   return new Anthropic({ apiKey: key, baseURL, dangerouslyAllowBrowser: true });
 }
 
-async function callStructured(
+export async function callStructured(
   client: Anthropic,
   model: string,
   guideCorpus: string,
