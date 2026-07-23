@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { store, persist, login, logout } from "./store";
+import { store, persist, login, logout, loadLatestRun } from "./store";
 import { MODELS } from "./lib/agent";
 import ImportPanel from "./components/ImportPanel.vue";
 import RunPanel from "./components/RunPanel.vue";
@@ -35,6 +35,7 @@ async function doLogin() {
   loggingIn.value = true;
   loginErr.value = await login(loginUser.value.trim(), loginPass.value);
   loggingIn.value = false;
+  if (!loginErr.value) loadLatestRun();
 }
 </script>
 

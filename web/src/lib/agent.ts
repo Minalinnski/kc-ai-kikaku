@@ -219,24 +219,25 @@ async function callStructured(
   schema: any,
   maxTokens: number,
   onProgress: (chars: number) => void,
+  onFirstToken?: () => void,
 ): Promise<{ result: any; usage: any }> {
   const content: Anthropic.TextBlockParam[] = [
     {
       type: "text",
       text: `<攻略语料>\n${guideCorpus}\n</攻略语料>`,
-      cache_control: { type: "ephemeral" },
+      cache_control: { type: "ephemeral", ttl: "1h" },
     },
     {
       type: "text",
       text: `<玩家box>\n${boxText}\n</玩家box>`,
-      cache_control: { type: "ephemeral" },
+      cache_control: { type: "ephemeral", ttl: "1h" },
     },
   ];
   if (extraContext) {
     content.push({
       type: "text",
       text: extraContext,
-      cache_control: { type: "ephemeral" },
+      cache_control: { type: "ephemeral", ttl: "1h" },
     });
   }
   content.push({ type: "text", text: task });
@@ -246,7 +247,7 @@ async function callStructured(
     max_tokens: maxTokens,
     thinking: { type: "adaptive", display: "summarized" },
     system: [
-      { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+      { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral", ttl: "1h" } },
     ],
     output_config: { format: { type: "json_schema", schema } },
     messages: [{ role: "user", content }],
@@ -254,7 +255,12 @@ async function callStructured(
 
   // 进度=思考摘要+正文字符数(思考阶段也让用户看到在动)
   let chars = 0;
+  let started = false;
   stream.on("streamEvent", (ev: any) => {
+    if (!started && ev.type === "message_start") {
+      started = true;
+      onFirstToken?.(); // 服务端已开始响应 = 缓存前缀已写入,可放行并行请求
+    }
     if (ev.type === "content_block_delta") {
       const d = ev.delta;
       chars += (d?.text?.length ?? 0) + (d?.thinking?.length ?? 0);
@@ -356,7 +362,7 @@ export async function runAgent(
 
   // 阶段2:逐图配装(DAG:全部依赖锁船总方案;共享前缀走 prompt cache)
   const overviewJson = JSON.stringify(run.overview);
-  const runMap = async (mapId: string) => {
+  const runMap = async (mapId: string, onFirstToken?: () => void) => {
     callbacks.onStage(mapId, "start");
     try {
       const { result, usage } = await callStructured(
@@ -365,6 +371,7 @@ export async function runAgent(
         mapTask(mapId, "(见上方锁船总方案参考)"),
         MAP_SCHEMA, 64000,
         (c) => callbacks.onProgress(mapId, c),
+        onFirstToken,
       );
       run.maps[mapId] = result as MapResult;
       accUsage(run, usage);
@@ -377,10 +384,13 @@ export async function runAgent(
   };
   const pending = maps.filter((m) => !run.maps[m]);
   if (pending.length) {
-    // 第一张图先跑:把「语料+box+锁船方案」完整前缀写入缓存;
-    // 其余图并行发起,全部读缓存(并行发起相同前缀会各自付全额写缓存,故必须先热)。
-    await runMap(pending[0]);
-    await Promise.all(pending.slice(1).map(runMap));
+    // 全并行(首token门控):首图请求一旦开始响应,缓存前缀即已写入,
+    // 立刻放行其余图并行 —— 兼得缓存读价与最大并行度。
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const first = runMap(pending[0], release);
+    await Promise.race([gate, first]); // 出错提前结束也放行
+    await Promise.all([first, ...pending.slice(1).map((m) => runMap(m))]);
   }
 
   run.finished_at = new Date().toISOString();

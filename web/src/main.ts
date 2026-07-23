@@ -1,8 +1,8 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import "./style.css";
-import { loadStatic, probeServer } from "./store";
+import { loadStatic, probeServer, loadLatestRun } from "./store";
 
-probeServer();
+probeServer().then(loadLatestRun);
 loadStatic();
 createApp(App).mount("#app");

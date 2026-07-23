@@ -91,6 +91,22 @@ export async function logout() {
   store.user = null;
 }
 
+/** 本地没有结果时,自动载入服务器上最近一次跑批(cli_run.mts 产物) */
+export async function loadLatestRun() {
+  if (!store.server || !store.authed || store.run) return;
+  try {
+    const r = await fetch(import.meta.env.BASE_URL + "api/latest-run");
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data?._type === "kc-event-advisor-save" && data.run?.overview) {
+      if (!store.box && data.box) store.box = data.box;
+      store.run = data.run;
+      persist();
+      console.log("已自动载入服务器跑批结果");
+    }
+  } catch {}
+}
+
 export function persist() {
   try {
     const { model, box, run } = store;
