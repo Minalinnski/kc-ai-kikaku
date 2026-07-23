@@ -162,6 +162,10 @@ const server = createServer(async (req, res) => {
   // Anthropic 代理(需登录;服务端注入 key)
   if (path.startsWith("/anthropic/")) {
     if (!user) return sendJSON(res, 401, { error: "未登录" });
+    const t0 = Date.now();
+    res.on("close", () => {
+      console.log(`[anthropic] ${user} ${req.method} ${path.slice(10)} → ${res.statusCode} ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+    });
     const headers = { ...req.headers };
     delete headers.host; delete headers.origin; delete headers.referer;
     delete headers.cookie; delete headers["x-api-key"]; delete headers.authorization;

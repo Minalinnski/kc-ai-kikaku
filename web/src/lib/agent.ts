@@ -244,7 +244,7 @@ async function callStructured(
   const stream = client.messages.stream({
     model,
     max_tokens: maxTokens,
-    thinking: { type: "adaptive" },
+    thinking: { type: "adaptive", display: "summarized" },
     system: [
       { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
     ],
@@ -252,10 +252,14 @@ async function callStructured(
     messages: [{ role: "user", content }],
   } as any);
 
+  // 进度=思考摘要+正文字符数(思考阶段也让用户看到在动)
   let chars = 0;
-  stream.on("text", (t) => {
-    chars += t.length;
-    onProgress(chars);
+  stream.on("streamEvent", (ev: any) => {
+    if (ev.type === "content_block_delta") {
+      const d = ev.delta;
+      chars += (d?.text?.length ?? 0) + (d?.thinking?.length ?? 0);
+      onProgress(chars);
+    }
   });
   const final = await stream.finalMessage();
   if (final.stop_reason === "max_tokens") {
@@ -336,7 +340,7 @@ export async function runAgent(
     try {
       const { result, usage } = await callStructured(
         client, model, guideCorpus, boxText, null,
-        OVERVIEW_TASK, OVERVIEW_SCHEMA, 32000,
+        OVERVIEW_TASK, OVERVIEW_SCHEMA, 64000,
         (c) => callbacks.onProgress("overview", c),
       );
       run.overview = result as OverviewResult;
@@ -359,7 +363,7 @@ export async function runAgent(
         client, model, guideCorpus, boxText,
         `<锁船总方案参考>\n${overviewJson}\n</锁船总方案参考>`,
         mapTask(mapId, "(见上方锁船总方案参考)"),
-        MAP_SCHEMA, 40000,
+        MAP_SCHEMA, 64000,
         (c) => callbacks.onProgress(mapId, c),
       );
       run.maps[mapId] = result as MapResult;

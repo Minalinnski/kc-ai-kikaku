@@ -24,7 +24,17 @@ async function run(fresh: boolean) {
   globalError.value = "";
   store.running = true;
   store.stageStatus = {};
-  if (fresh) store.run = null;
+  // 先把 run 对象挂到 store 上,runAgent 原地填充 —— 每个阶段完成即持久化,
+  // 中途关页/断线也不丢已完成的部分。
+  if (fresh || !store.run) {
+    store.run = {
+      model: store.model,
+      started_at: new Date().toISOString(),
+      maps: {},
+      errors: {},
+      usage: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+    };
+  }
   try {
     const result = await runAgent(
       apiKey(),
@@ -48,7 +58,7 @@ async function run(fresh: boolean) {
           };
         },
       },
-      fresh ? null : store.run,
+      store.run,
     );
     store.run = result;
     persist();
