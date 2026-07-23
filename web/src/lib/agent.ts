@@ -8,6 +8,7 @@ import type {
   OverviewResult,
 } from "./types";
 import { compactBoxText } from "./parseBox.ts";
+import { verifyRun } from "./verify.ts";
 
 export const MODELS = [
   { id: "claude-opus-4-8", label: "Claude Opus 4.8(推荐,质量最高)" },
@@ -41,6 +42,15 @@ const bool = { type: "boolean" };
 const num = { type: "number" };
 const arr = (items: any) => ({ type: "array", items });
 
+const LOCK_SHIP_SCHEMA = obj({
+  role: str,
+  pick: str,
+  owned: bool,
+  level_note: str,
+  alternatives: str,
+  reason: str,
+});
+
 const OVERVIEW_SCHEMA = obj({
   difficulty: str,
   overview: str,
@@ -48,16 +58,7 @@ const OVERVIEW_SCHEMA = obj({
     obj({
       tag: str,
       maps: str,
-      ships: arr(
-        obj({
-          role: str,
-          pick: str,
-          owned: bool,
-          level_note: str,
-          alternatives: str,
-          reason: str,
-        }),
-      ),
+      ships: arr(LOCK_SHIP_SCHEMA),
       notes: str,
     }),
   ),
@@ -66,10 +67,7 @@ const OVERVIEW_SCHEMA = obj({
   risks: arr(str),
 });
 
-const MAP_SCHEMA = obj({
-  map: str,
-  map_notes: str,
-  phases: arr(
+const PHASE_SCHEMA =
     obj({
       phase: str,
       tag: str,
@@ -96,8 +94,18 @@ const MAP_SCHEMA = obj({
       notes: str,
       warnings: arr(str),
       noro6_ref: str,
-    }),
-  ),
+    });
+
+const MAP_SCHEMA = obj({
+  map: str,
+  map_notes: str,
+  phases: arr(PHASE_SCHEMA),
+});
+
+const REPAIR_SCHEMA = obj({
+  phase_patches: arr(obj({ map: str, phase: str, patched: PHASE_SCHEMA })),
+  lock_patches: arr(obj({ tag: str, ships: arr(LOCK_SHIP_SCHEMA) })),
+  notes: arr(str),
 });
 
 // ---------- Guide 语料渲染 ----------
@@ -135,6 +143,14 @@ export function renderGuideCorpus(pack: GuidePack): string {
   parts.push(
     `大发dd分级表 — 内火: ${dd["内火"].join("、")} / 一拳: ${dd["一拳"].join("、")} / 大发: ${dd["大发"].join("、")}`,
   );
+
+  // 昵称对照(语料证据蒸馏,带证据)
+  if (pack.cn_aliases?.length) {
+    parts.push(
+      `\n# 舰娘昵称对照表(从本攻略语料蒸馏,均有证据;遇到昵称以此表为准)\n` +
+      pack.cn_aliases.map((a) => `${a.alias} = ${a.canonical}`).join(";"),
+    );
+  }
 
   // 主攻略全文(配图占位替换为视觉转录)
   const notes = pack.image_notes ?? {};
@@ -391,6 +407,74 @@ export async function runAgent(
     const first = runMap(pending[0], release);
     await Promise.race([gate, first]); // 出错提前结束也放行
     await Promise.all([first, ...pending.slice(1).map((m) => runMap(m))]);
+  }
+
+  // 阶段3:机器校验 → 自动修复回路(只改冲突位)→ 复检
+  try {
+    let v = verifyRun(run, box, master);
+    let hard = v.violations.filter((x) => x.level === "error");
+    run.verify = { errors: hard.length, warns: v.violations.length - hard.length };
+    // 修复可能引入次生冲突(替代装备再超量),最多迭代2轮收敛
+    for (let repairIter = 0; repairIter < 2 && hard.length && run.overview; repairIter++) {
+      callbacks.onStage("repair", "start");
+      const phaseKeys = new Set<string>();
+      const lockTags = new Set<string>();
+      for (const x of hard) {
+        if (/^E\d·/.test(x.where)) phaseKeys.add(x.where);
+        const lm = x.where.match(/^锁船表·(.+)$/);
+        if (lm) lockTags.add(lm[1]);
+      }
+      const affectedPhases: any[] = [];
+      for (const key of phaseKeys) {
+        const [mapId, phName] = key.split("·");
+        const ph = run.maps[mapId]?.phases.find((p) => p.phase === phName);
+        if (ph) affectedPhases.push({ map: mapId, phase: ph });
+      }
+      const affectedLocks = run.overview.lock_plan.filter((t) => lockTags.has(t.tag));
+      const repairTask = `# 任务:修复机器校验发现的硬冲突
+
+下面是对你此前方案的确定性校验结果(装备/舰娘持有量为box精确统计,不可能出错),以及受影响部分的当前方案JSON。请只修改冲突相关的位置,其余内容原样保留:
+
+<硬冲突清单>
+${hard.map((x) => `[${x.where}] ${x.msg}`).join("\n")}
+</硬冲突清单>
+
+<受影响的阶段方案>
+${JSON.stringify(affectedPhases)}
+</受影响的阶段方案>
+
+<受影响的锁船条目>
+${JSON.stringify(affectedLocks)}
+</受影响的锁船条目>
+
+修复规则:
+- 装备超量:改用box内确实存在的替代装备(参考攻略平替逻辑),或在多舰间重新分配;修改处在 note/why 里注明「机器校验修正」及原因。
+- 舰娘超量/重复:换成box内的可用替代舰,同步保持与锁船表一致。
+- 每个 phase_patch 输出该阶段完整JSON(patched),lock_patch 输出该札完整 ships 数组。
+- 无法修复的冲突写入 notes 说明取舍。`;
+      const { result, usage } = await callStructured(
+        client, model, guideCorpus, boxText,
+        `<锁船总方案参考>\n${overviewJson}\n</锁船总方案参考>`,
+        repairTask, REPAIR_SCHEMA, 64000,
+        (c) => callbacks.onProgress("repair", c),
+      );
+      for (const p of result.phase_patches ?? []) {
+        const arrp = run.maps[p.map]?.phases;
+        const i = arrp ? arrp.findIndex((x) => x.phase === p.phase) : -1;
+        if (arrp && i >= 0) arrp[i] = p.patched;
+      }
+      for (const lp of result.lock_patches ?? []) {
+        const t = run.overview.lock_plan.find((x) => x.tag === lp.tag);
+        if (t) t.ships = lp.ships;
+      }
+      accUsage(run, usage);
+      v = verifyRun(run, box, master);
+      hard = v.violations.filter((x) => x.level === "error");
+      run.verify = { errors: hard.length, warns: v.violations.length - hard.length, repaired: true };
+      callbacks.onStage("repair", "done", `第${repairIter + 1}轮修复后剩余硬冲突 ${hard.length}`);
+    }
+  } catch (e) {
+    callbacks.onStage("repair", "error", String((e as Error).message ?? e));
   }
 
   run.finished_at = new Date().toISOString();

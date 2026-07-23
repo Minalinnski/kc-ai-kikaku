@@ -55,6 +55,8 @@ def main():
     notes_f = ROOT / "data" / "extracted" / "image_notes.json"
     image_notes = json.loads(notes_f.read_text()) if notes_f.exists() else {}
     image_notes.pop("_meta", None)
+    alias_f = ROOT / "data" / "extracted" / "cn_aliases.json"
+    cn_aliases = json.loads(alias_f.read_text())["aliases"] if alias_f.exists() else []
 
     # noro6 配置:code → {section, summary}
     lines = doc.split("\n")
@@ -93,6 +95,7 @@ def main():
         "noro6": noro6,
         "images": img_map,
         "image_notes": image_notes,
+        "cn_aliases": cn_aliases,
     }
     out_f = OUT / "guide.json"
     out_f.write_text(json.dumps(pack, ensure_ascii=False))

@@ -8,3 +8,4 @@ web/dist/
 web/.env
 temp/
 server/.env
+server/runs/

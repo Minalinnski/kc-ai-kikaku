@@ -1,0 +1,228 @@
+{
+ "_meta": {
+  "source": "语料证据对齐蒸馏",
+  "model": "claude-opus-4-8"
+ },
+ "aliases": [
+  {
+   "alias": "鸭",
+   "canonical": "Iowa",
+   "evidence": "锁船表『武藏/鸭iowa』+『大和一号机+武或者鸭』+noro6 E3P4 Iowa改"
+  },
+  {
+   "alias": "蜜瓜",
+   "canonical": "夕張",
+   "evidence": "E1P1『优先上蜜瓜2号，需要提速…都没有就上阿武隈』(CL槽)，夕張以产哈密瓜闻名+多号机表『夕张』+noro6夕張改二特"
+  },
+  {
+   "alias": "3V",
+   "canonical": "三隈",
+   "evidence": "E1P2开路『上一个后边用的av（瑞穗或者3V2号）』+锁船表『瑞穗/三隈2』+noro6三隈改二特"
+  },
+  {
+   "alias": "rj",
+   "canonical": "龍驤",
+   "evidence": "E4P5『推荐用rj或者祥凤罚站』+锁船表『高速cvl(rj)』+noro6 E4P3龍驤改二"
+  },
+  {
+   "alias": "玲",
+   "canonical": "鈴谷",
+   "evidence": "锁船分析『玲熊航中的一个来打输出』(航巡输出手)+noro6 E5P4鈴谷改二"
+  },
+  {
+   "alias": "熊",
+   "canonical": "熊野",
+   "evidence": "锁船分析『玲熊航中的一个来打输出』+noro6 E4P3/P5熊野航改二"
+  },
+  {
+   "alias": "武",
+   "canonical": "武蔵",
+   "evidence": "锁船分析『刚需大和一号机+武或者鸭』+锁船表『武藏/鸭iowa』+noro6武蔵改二"
+  },
+  {
+   "alias": "大",
+   "canonical": "大和",
+   "evidence": "锁船分析『有大和2和鸭，则E3P1P4用大鸭』+noro6大和改二"
+  },
+  {
+   "alias": "百一",
+   "canonical": "第百一号輸送艦",
+   "evidence": "E5P2『一队可以带个百一』+锁船表『百一』+noro6第百一号輸送艦改"
+  },
+  {
+   "alias": "岛根丸",
+   "canonical": "しまね丸",
+   "evidence": "E5P2『岛根丸是正好可以撑到130+制空拿空潜空均』+锁船表『LHA/岛根丸/山汐丸』+noro6しまね丸改"
+  },
+  {
+   "alias": "无畏",
+   "canonical": "Intrepid",
+   "evidence": "E3P1『2美国CV最好是wasp和无畏』+锁船表『无畏』+noro6 Intrepid改"
+  },
+  {
+   "alias": "黎塞留",
+   "canonical": "Richelieu",
+   "evidence": "锁船分析『黎塞留让巴尔一号机给E4P3-5』+noro6 Richelieu Deux"
+  },
+  {
+   "alias": "让巴尔",
+   "canonical": "Jean Bart",
+   "evidence": "锁船分析『黎塞留让巴尔一号机给E4P3-5』+noro6 Jean Bart改"
+  },
+  {
+   "alias": "jb",
+   "canonical": "Jean Bart",
+   "evidence": "E5P4『单四航或者jb黎塞留只有一个』+noro6 Jean Bart改"
+  },
+  {
+   "alias": "塔斯特",
+   "canonical": "Commandant Teste",
+   "evidence": "E5P4『tst（塔斯特）带路+倍卡输出』+锁船表『塔斯特』+noro6 Commandant Teste改"
+  },
+  {
+   "alias": "tst",
+   "canonical": "Commandant Teste",
+   "evidence": "E5P4『tst（塔斯特）带路』『带TST和glorie摸』+noro6 Commandant Teste改"
+  },
+  {
+   "alias": "哥特兰",
+   "canonical": "Gotland",
+   "evidence": "E5P4『其次需要哥特兰』『带路需要哥特兰或者瑞典dd』+noro6 Gotland andra"
+  },
+  {
+   "alias": "莫加",
+   "canonical": "Mogador",
+   "evidence": "E4P5『法国光荣和莫加有大倍卡，优先上』+锁船表『莫加1/jervis』+noro6 Mogador改"
+  },
+  {
+   "alias": "莫加多尔",
+   "canonical": "Mogador",
+   "evidence": "E4P5『莫加多尔一号机（有二号机的前提下）』+多号机表『莫加多尔』+noro6 Mogador改"
+  },
+  {
+   "alias": "标枪",
+   "canonical": "Javelin",
+   "evidence": "锁船表欧洲联合『标枪』+noro6 E5P4 Javelin改"
+  },
+  {
+   "alias": "塔什干",
+   "canonical": "Ташкент",
+   "evidence": "锁船表第二轻型舰队『塔什干(工具人)』+noro6 E5P1 Ташкент改"
+  },
+  {
+   "alias": "海伍德",
+   "canonical": "Heywood L.E.",
+   "evidence": "锁船表第二轻型舰队『海伍德(对空对潜)』+noro6 E5P1 Heywood L.E.改"
+  },
+  {
+   "alias": "欧根",
+   "canonical": "Prinz Eugen",
+   "evidence": "E5P1『1个ca系可以用剩的cav或者欧根等』+锁船表『ca(v)欧根』+noro6 Prinz Eugen改"
+  },
+  {
+   "alias": "谢菲",
+   "canonical": "Sheffield",
+   "evidence": "E5P3解密『外国cl基洛夫谢菲』+noro6 Sheffield改"
+  },
+  {
+   "alias": "基洛夫",
+   "canonical": "Киров",
+   "evidence": "E5P3解密『外国cl基洛夫谢菲』+noro6 Киров改"
+  },
+  {
+   "alias": "罗马",
+   "canonical": "Roma",
+   "evidence": "E5P3解密『2bb用罗马意大利或者其他海外fbb』+noro6 Roma改"
+  },
+  {
+   "alias": "意大利",
+   "canonical": "Italia",
+   "evidence": "E5P3解密『2bb用罗马意大利』+锁船表『海外fbb(意大利)』+noro6 Italia"
+  },
+  {
+   "alias": "北安普顿",
+   "canonical": "Northampton",
+   "evidence": "E5P3解密『否则用任意美国人（北安普顿）』+noro6 Northampton改"
+  },
+  {
+   "alias": "兰利",
+   "canonical": "Langley",
+   "evidence": "E5P3解密『1高速cvl还可以用兰利』+noro6 Langley改"
+  },
+  {
+   "alias": "独立",
+   "canonical": "Independence",
+   "evidence": "E5P3『可以用E3送的独立』+锁船表『高速cvl(独立)』+noro6 Independence"
+  },
+  {
+   "alias": "纳尔逊",
+   "canonical": "Nelson",
+   "evidence": "E5P3『一队建议提速罗德尼/纳尔逊』+noro6 E5P4 Nelson改"
+  },
+  {
+   "alias": "罗德尼",
+   "canonical": "Rodney",
+   "evidence": "E5P3『提速罗德尼/纳尔逊』+noro6 E5P3 Rodney改"
+  },
+  {
+   "alias": "加里波第",
+   "canonical": "G.Garibaldi",
+   "evidence": "E4P3路线『加里波第+900+2*400』+锁船表『cl(加里波第)』+noro6 G.Garibaldi改"
+  },
+  {
+   "alias": "阿布鲁齐",
+   "canonical": "L.d.S.D.d.Abruzzi",
+   "evidence": "E5P2『这里用的是阿布鲁齐』+锁船表『cl(阿布鲁齐)』+noro6 L.d.S.D.d.Abruzzi改"
+  },
+  {
+   "alias": "ark",
+   "canonical": "Ark Royal",
+   "evidence": "E4P5『ark优先交这里』+锁船表『ark/胜利』+noro6 Ark Royal改"
+  },
+  {
+   "alias": "皇家方舟",
+   "canonical": "Ark Royal",
+   "evidence": "多号机表『Ark/皇家方舟』+noro6 Ark Royal改"
+  },
+  {
+   "alias": "法国光荣",
+   "canonical": "Gloire",
+   "evidence": "E4P5『法国光荣和莫加有大倍卡，优先上』+noro6 Gloire改"
+  },
+  {
+   "alias": "glorie",
+   "canonical": "Gloire",
+   "evidence": "E5P4『带TST和glorie摸』+锁船表『glorie』+noro6 Gloire改"
+  },
+  {
+   "alias": "响",
+   "canonical": "響",
+   "evidence": "E5P3『带个日进+倍卡外国大发dd响摸』+锁船表『响』+noro6 Верный"
+  },
+  {
+   "alias": "凤凰城",
+   "canonical": "General Belgrano",
+   "evidence": "锁船表法第三舰队『cl(凤凰城)』+noro6 E4P1 General Belgrano"
+  },
+  {
+   "alias": "小明",
+   "canonical": "Minneapolis",
+   "evidence": "锁船表法第三舰队『ca(v)(小明)』+noro6 E4P1 Minneapolis改"
+  },
+  {
+   "alias": "明尼",
+   "canonical": "Minneapolis",
+   "evidence": "E4P1『劝退严重明尼带烟』+noro6 Minneapolis改"
+  },
+  {
+   "alias": "flc",
+   "canonical": "Fletcher",
+   "evidence": "E2P1『没改完的可以换进去flc/竹』『秋月级改二二号机/flc级』+noro6 Fletcher Mk.II"
+  },
+  {
+   "alias": "阿尔及利亚",
+   "canonical": "Algerie",
+   "evidence": "E4P4『如果不想练阿尔及利亚』+锁船表『jervis/阿尔及利亚』+noro6 Algérie改(master无重音写法Algerie)"
+  }
+ ]
+}

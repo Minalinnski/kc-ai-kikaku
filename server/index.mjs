@@ -11,6 +11,7 @@ import { request as httpsRequest, Agent } from "node:https";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, extname, resolve, dirname } from "node:path";
+import { createJobManager } from "./job.mjs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -66,6 +67,12 @@ for (const f of readdirSync(join(DIST, "assets"))) {
   }
 }
 
+const jobManager = createJobManager({
+  apiKey: API_KEY,
+  root: ROOT,
+  quotaPerDay: Number(process.env.RUN_QUOTA_PER_DAY || envFile.RUN_QUOTA_PER_DAY || 4),
+});
+
 // ── 会话 ──────────────────────────────────────────────
 const sign = (s) => createHmac("sha256", SECRET).update(s).digest("base64url");
 function makeCookie(user) {
@@ -115,7 +122,7 @@ function readBody(req) {
     let size = 0;
     req.on("data", (c) => {
       size += c.length;
-      if (size > 1e6) { reject(new Error("body too large")); req.destroy(); return; }
+      if (size > 2e6) { reject(new Error("body too large")); req.destroy(); return; }
       chunks.push(c);
     });
     req.on("end", () => resolvep(Buffer.concat(chunks)));
@@ -158,14 +165,33 @@ const server = createServer(async (req, res) => {
   if (path === "/api/me") {
     return sendJSON(res, 200, { server: true, auth: !!user, user: user ?? null });
   }
-  // 服务器上最近一次跑批结果(cli_run.mts 产物)——仅所有者可见(默认=用户表第一个)
+  // 服务端 agent job:发起 / 查询进度
+  if (path === "/api/run" && req.method === "POST") {
+    if (!user) return sendJSON(res, 401, { error: "未登录" });
+    let body;
+    try { body = JSON.parse((await readBody(req)).toString() || "{}"); } catch { body = {}; }
+    try {
+      await jobManager.start(user, {
+        box: body.box,
+        model: body.model || "claude-opus-4-8",
+        maps: Array.isArray(body.maps) && body.maps.length ? body.maps : ["E1", "E2", "E3", "E4", "E5"],
+        fresh: !!body.fresh,
+      });
+      return sendJSON(res, 202, { ok: true });
+    } catch (e) {
+      return sendJSON(res, e.code ?? 500, { error: e.msg ?? String(e) });
+    }
+  }
+  if (path === "/api/run/status") {
+    if (!user) return sendJSON(res, 401, { error: "未登录" });
+    return sendJSON(res, 200, jobManager.status(user));
+  }
+
+  // 每用户最近一次跑批结果
   if (path === "/api/latest-run") {
     if (!user) return sendJSON(res, 401, { error: "未登录" });
-    const owner = process.env.LATEST_RUN_USER || envFile.LATEST_RUN_USER || Object.keys(USERS)[0];
-    if (user !== owner) return sendJSON(res, 404, { error: "暂无跑批结果" });
-    const f = process.env.LATEST_RUN || envFile.LATEST_RUN || join(ROOT, "temp", "kc_run_save.json");
-    if (!existsSync(f)) return sendJSON(res, 404, { error: "暂无跑批结果" });
-    const data = readFileSync(f);
+    const data = jobManager.latest(user);
+    if (!data) return sendJSON(res, 404, { error: "暂无跑批结果" });
     res.writeHead(200, { "content-type": "application/json", "content-length": data.length });
     return res.end(data);
   }

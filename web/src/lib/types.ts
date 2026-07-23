@@ -70,6 +70,7 @@ export interface GuidePack {
   >;
   images: Record<string, { file: string; w: number; h: number }>;
   image_notes: Record<string, string>;
+  cn_aliases?: { alias: string; canonical: string; evidence: string }[];
 }
 
 export interface Noro6Ship {
@@ -160,6 +161,7 @@ export interface MapResult {
 }
 
 export interface AgentRun {
+  verify?: { errors: number; warns: number; repaired?: boolean };
   model: string;
   started_at: string;
   finished_at?: string;

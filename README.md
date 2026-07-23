@@ -25,7 +25,9 @@ cp server/.env.example server/.env      # 设置 AUTH_USERS 帐密列表
 node server/index.mjs                   # http://localhost:8787
 ```
 
-服务器启动时会自检构建产物中不含真实 key。要给朋友用,把 8787 端口暴露出去即可
+服务器启动时会自检构建产物中不含真实 key。**分析任务在服务端运行**:点开始后可关页,
+回来自动接上进度;结果按用户隔离保存(server/runs/)。每用户日配额默认 4 次
+(server/.env 的 RUN_QUOTA_PER_DAY)。要给朋友用,把 8787 端口暴露出去即可
 (内网直连 / Tailscale / frp / 挂个反代,按你的网络环境来;公网暴露建议套 HTTPS)。
 
 ### 方式 B:本地自跑(自己一个人用)
@@ -69,6 +71,7 @@ python3 pipeline/fetch_doc.py lowdiff "https://shimo.im/docs/odyAOtsnVIdVPzAf/" 
 python3 pipeline/fetch_sheet.py lock  "https://shimo.im/sheets/GvhogtzTADp1mo1Q/MODOC/"  # 锁船表截图
 python3 pipeline/fetch_noro6.py                                                  # 解码全部 noro6 短链
 python3 pipeline/transcribe_images.py                                            # VLM 转录新配图(需 ANTHROPIC_API_KEY)
+python3 pipeline/build_aliases.py                                                # 昵称别名库蒸馏(证据对齐,需 key)
 # 锁船表/多号机表变动时:对照 data/shimo/lock/ 截图核对 data/extracted/*.json
 python3 pipeline/build_guide_pack.py                                             # 汇编 → web/public/data/guide.json
 python3 pipeline/build_master.py                                                 # (低频)舰娘/装备 master 更新
@@ -82,10 +85,14 @@ python3 pipeline/build_master.py                                                
 
 - 浏览器直连 `@anthropic-ai/sdk`,默认 `claude-opus-4-8` + adaptive thinking;
 - 结构化输出(`output_config.format` json_schema)保证结果可渲染;
-- 调用结构:1 次锁船总方案 + 每图 1 次配装细化;system/攻略语料/box/锁船方案四级
-  `cache_control` 断点,逐图调用输入基本走缓存;
+- 调用结构:锁船总方案 → 全图并行配装(首token门控写热缓存)→ 机器校验 + 自动修复回路
+  (确定性核查装备/舰娘持有量冲突,只把冲突位喂回 AI 修补,最多迭代 2 轮);
+  system/攻略语料/box/锁船方案四级 `cache_control`(1h TTL)断点,并行调用全走缓存读;
 - 语料含:攻略全文(配图替换为 VLM 转录,含倍卡表/陆航配置/E6编成)、锁船表/多号机表
-  结构化转录、31 组 noro6 解码配装(舰+装备星级+基地航空+敌配置)、玩家全量 Box 紧凑文本。
+  结构化转录、31 组 noro6 解码配装(舰+装备星级+基地航空+敌配置)、44 条证据对齐的
+  中文昵称对照、玩家全量 Box 紧凑文本。
+- 可信度层:「⑤ 贴条·校验」页 = 机器校验报告 + 舰娘→札对照板(含游戏内实际贴札);
+  逐图配装每阶段可一键在 noro6 打开做第三方制空/索敌核算。
 
 ## 目录
 
