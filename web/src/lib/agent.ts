@@ -414,29 +414,38 @@ export async function runAgent(
     let v = verifyRun(run, box, master);
     let hard = v.violations.filter((x) => x.level === "error");
     run.verify = { errors: hard.length, warns: v.violations.length - hard.length };
-    // 修复可能引入次生冲突(替代装备再超量),最多迭代2轮收敛
-    for (let repairIter = 0; repairIter < 2 && hard.length && run.overview; repairIter++) {
-      callbacks.onStage("repair", "start");
-      const phaseKeys = new Set<string>();
-      const lockTags = new Set<string>();
+    // 按图分批并行修复(每批只回写本图补丁,输出小、缓存热、单批失败不拖累其他批);
+    // 修复可能引入次生冲突(替代装备再超量),最多迭代3轮收敛
+    for (let repairIter = 0; repairIter < 3 && hard.length && run.overview; repairIter++) {
+      callbacks.onStage("repair", "start", `第${repairIter + 1}轮,${hard.length} 个冲突分批并行`);
+      const batches = new Map<string, typeof hard>();
       for (const x of hard) {
-        if (/^E\d·/.test(x.where)) phaseKeys.add(x.where);
-        const lm = x.where.match(/^锁船表·(.+)$/);
-        if (lm) lockTags.add(lm[1]);
+        const m = x.where.match(/^(E\d+)·/);
+        const key = m ? m[1] : "lock";
+        if (!batches.has(key)) batches.set(key, []);
+        batches.get(key)!.push(x);
       }
-      const affectedPhases: any[] = [];
-      for (const key of phaseKeys) {
-        const [mapId, phName] = key.split("·");
-        const ph = run.maps[mapId]?.phases.find((p) => p.phase === phName);
-        if (ph) affectedPhases.push({ map: mapId, phase: ph });
-      }
-      const affectedLocks = run.overview.lock_plan.filter((t) => lockTags.has(t.tag));
-      const repairTask = `# 任务:修复机器校验发现的硬冲突
+      const progress = new Map<string, number>();
+      const report = () =>
+        callbacks.onProgress("repair", [...progress.values()].reduce((a, b) => a + b, 0));
+      const repairBatch = async (key: string, list: typeof hard) => {
+        const affectedPhases: any[] = [];
+        for (const where of new Set(list.map((x) => x.where))) {
+          const m = where.match(/^(E\d+)·(.+)$/);
+          if (!m) continue;
+          const ph = run.maps[m[1]]?.phases.find((p) => p.phase === m[2]);
+          if (ph) affectedPhases.push({ map: m[1], phase: ph });
+        }
+        const lockTags = new Set(
+          list.map((x) => x.where.match(/^锁船表·(.+)$/)?.[1]).filter(Boolean),
+        );
+        const affectedLocks = run.overview!.lock_plan.filter((t) => lockTags.has(t.tag));
+        const repairTask = `# 任务:修复机器校验发现的硬冲突(仅 ${key === "lock" ? "锁船总表" : key})
 
 下面是对你此前方案的确定性校验结果(装备/舰娘持有量为box精确统计,不可能出错),以及受影响部分的当前方案JSON。请只修改冲突相关的位置,其余内容原样保留:
 
 <硬冲突清单>
-${hard.map((x) => `[${x.where}] ${x.msg}`).join("\n")}
+${list.map((x) => `[${x.where}] ${x.msg}`).join("\n")}
 </硬冲突清单>
 
 <受影响的阶段方案>
@@ -451,27 +460,42 @@ ${JSON.stringify(affectedLocks)}
 - 装备超量:改用box内确实存在的替代装备(参考攻略平替逻辑),或在多舰间重新分配;修改处在 note/why 里注明「机器校验修正」及原因。
 - 舰娘超量/重复:换成box内的可用替代舰,同步保持与锁船表一致。
 - 每个 phase_patch 输出该阶段完整JSON(patched),lock_patch 输出该札完整 ships 数组。
-- 无法修复的冲突写入 notes 说明取舍。`;
-      const { result, usage } = await callStructured(
-        client, model, guideCorpus, boxText,
-        `<锁船总方案参考>\n${overviewJson}\n</锁船总方案参考>`,
-        repairTask, REPAIR_SCHEMA, 64000,
-        (c) => callbacks.onProgress("repair", c),
+- 只处理上面清单里的冲突,不要输出无关阶段;无法修复的冲突写入 notes 说明取舍。`;
+        const { result, usage } = await callStructured(
+          client, model, guideCorpus, boxText,
+          `<锁船总方案参考>\n${overviewJson}\n</锁船总方案参考>`,
+          repairTask, REPAIR_SCHEMA, 64000,
+          (c) => { progress.set(key, c); report(); },
+        );
+        return { result, usage };
+      };
+      const settled = await Promise.allSettled(
+        [...batches.entries()].map(([k, list]) => repairBatch(k, list)),
       );
-      for (const p of result.phase_patches ?? []) {
-        const arrp = run.maps[p.map]?.phases;
-        const i = arrp ? arrp.findIndex((x) => x.phase === p.phase) : -1;
-        if (arrp && i >= 0) arrp[i] = p.patched;
-      }
-      for (const lp of result.lock_patches ?? []) {
-        const t = run.overview.lock_plan.find((x) => x.tag === lp.tag);
-        if (t) t.ships = lp.ships;
-      }
-      accUsage(run, usage);
+      const failed: string[] = [];
+      settled.forEach((s, i) => {
+        const key = [...batches.keys()][i];
+        if (s.status === "rejected") { failed.push(key); return; }
+        const { result, usage } = s.value;
+        for (const p of result.phase_patches ?? []) {
+          const arrp = run.maps[p.map]?.phases;
+          const idx = arrp ? arrp.findIndex((x) => x.phase === p.phase) : -1;
+          if (arrp && idx >= 0) arrp[idx] = p.patched;
+        }
+        for (const lp of result.lock_patches ?? []) {
+          const t = run.overview!.lock_plan.find((x) => x.tag === lp.tag);
+          if (t) t.ships = lp.ships;
+        }
+        accUsage(run, usage);
+      });
       v = verifyRun(run, box, master);
       hard = v.violations.filter((x) => x.level === "error");
       run.verify = { errors: hard.length, warns: v.violations.length - hard.length, repaired: true };
-      callbacks.onStage("repair", "done", `第${repairIter + 1}轮修复后剩余硬冲突 ${hard.length}`);
+      callbacks.onStage(
+        "repair", "done",
+        `第${repairIter + 1}轮修复后剩余硬冲突 ${hard.length}` +
+          (failed.length ? `(${failed.join("/")} 批失败,下轮重试)` : ""),
+      );
     }
   } catch (e) {
     callbacks.onStage("repair", "error", String((e as Error).message ?? e));
