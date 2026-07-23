@@ -158,9 +158,11 @@ const server = createServer(async (req, res) => {
   if (path === "/api/me") {
     return sendJSON(res, 200, { server: true, auth: !!user, user: user ?? null });
   }
-  // 服务器上最近一次跑批结果(cli_run.mts 产物),登录后前端自动载入
+  // 服务器上最近一次跑批结果(cli_run.mts 产物)——仅所有者可见(默认=用户表第一个)
   if (path === "/api/latest-run") {
     if (!user) return sendJSON(res, 401, { error: "未登录" });
+    const owner = process.env.LATEST_RUN_USER || envFile.LATEST_RUN_USER || Object.keys(USERS)[0];
+    if (user !== owner) return sendJSON(res, 404, { error: "暂无跑批结果" });
     const f = process.env.LATEST_RUN || envFile.LATEST_RUN || join(ROOT, "temp", "kc_run_save.json");
     if (!existsSync(f)) return sendJSON(res, 404, { error: "暂无跑批结果" });
     const data = readFileSync(f);
