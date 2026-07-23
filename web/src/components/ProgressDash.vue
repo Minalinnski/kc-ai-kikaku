@@ -17,10 +17,12 @@ onMounted(() => { tick = setInterval(() => (now.value = Date.now()), 1000); });
 onUnmounted(() => clearInterval(tick));
 
 // 进度基准(来自历史实测:总览~61k、单图20-42k、修复~20k 字符)
-const BASELINE: Record<string, number> = { overview: 62000, repair: 22000 };
+const BASELINE: Record<string, number> = { overview: 62000, repair: 22000, prep: 25000 };
 const baseFor = (s: string) => BASELINE[s] ?? 34000;
 
 const mapIds = computed<string[]>(() => props.status?.maps ?? props.maps);
+// 并行泳道 = 逐图 + 战前布局(与图同级并行)
+const laneIds = computed<string[]>(() => [...mapIds.value, "prep"]);
 const stages = computed<Record<string, any>>(
   () => props.status?.stages ?? store.stageStatus ?? {},
 );
@@ -48,6 +50,7 @@ function effStatus(s: string): string {
   if (x) return x;
   // 无进行中任务时,从已有结果推断(展示上一次运行的形态)
   if (s === "overview" && store.run?.overview) return "done";
+  if (s === "prep" && store.run?.prep) return "done";
   if (s === "repair" && store.run?.verify?.repaired) return "done";
   if (store.run?.maps?.[s]) return "done";
   return "pending";
@@ -91,7 +94,7 @@ const elapsed = computed(() => {
       : now.value;
   return fmtDur(end - startedAt.value);
 });
-const allStages = computed(() => ["overview", ...mapIds.value, "repair"]);
+const allStages = computed(() => ["overview", ...mapIds.value, "prep", "repair"]);
 const doneCount = computed(() => allStages.value.filter((s) => effStatus(s) === "done").length);
 const totalChars = computed(() =>
   allStages.value.reduce((a, s) => a + (st(s).chars ?? 0), 0),
@@ -122,7 +125,7 @@ const rate = computed(() => {
 });
 
 // ── 活动日志 ──
-const STAGE_LABEL: Record<string, string> = { overview: "总览锁船", repair: "校验修复" };
+const STAGE_LABEL: Record<string, string> = { overview: "总览锁船", prep: "战前布局", repair: "校验修复" };
 const label = (s: string) => STAGE_LABEL[s] ?? `${s} 配装`;
 const STATUS_TXT: Record<string, string> = { start: "开始", running: "生成中", done: "完成 ✓", error: "失败 ✗" };
 const feed = computed(() => {
@@ -173,13 +176,13 @@ const dotClass = (s: string) => {
 
       <!-- 并行泳道 -->
       <div class="lane">
-        <div class="lane-tag mono">并行 ×{{ mapIds.length }}</div>
+        <div class="lane-tag mono">并行 ×{{ laneIds.length }}</div>
         <div class="lane-grid">
-          <div v-for="m in mapIds" :key="m" class="node map-node">
+          <div v-for="m in laneIds" :key="m" class="node map-node">
             <span class="dot" :class="dotClass(m)"></span>
             <div class="node-body">
               <div class="node-title">
-                {{ m }}
+                {{ m === "prep" ? "战前布局" : m }}
                 <span class="mono dim sm">{{ fmtK(st(m).chars) }}</span>
                 <span class="mono dim sm" v-if="stageElapsed(m)">· {{ stageElapsed(m) }}</span>
               </div>

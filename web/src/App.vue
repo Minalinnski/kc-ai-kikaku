@@ -8,20 +8,27 @@ import ResultOverview from "./components/ResultOverview.vue";
 import ResultMaps from "./components/ResultMaps.vue";
 import GuideView from "./components/GuideView.vue";
 import TagBoard from "./components/TagBoard.vue";
+import PrepPanel from "./components/PrepPanel.vue";
 
-const tab = ref("import");
+const tab = ref(store.snapshot ? "overview" : "import");
 
-const tabs = computed(() => [
-  { id: "import", label: "① 导入 Box", badge: store.box ? `${store.box.ships.length}舰` : "" },
-  { id: "run", label: "② 运行分析", badge: store.running ? "运行中" : "" },
-  { id: "overview", label: "③ 锁船总表", badge: store.run?.overview ? "✓" : "" },
-  { id: "maps", label: "④ 逐图配装", badge: Object.keys(store.run?.maps ?? {}).length ? `${Object.keys(store.run!.maps).length}图` : "" },
-  { id: "board", label: "⑤ 贴条·校验" },
-  { id: "guide", label: "⑥ 攻略资料" },
-]);
+const tabs = computed(() => {
+  const all = [
+    { id: "import", label: "① 导入 Box", badge: store.box ? `${store.box.ships.length}舰` : "" },
+    { id: "run", label: "② 运行分析", badge: store.running ? "运行中" : "" },
+    { id: "overview", label: "③ 锁船总表", badge: store.run?.overview ? "✓" : "" },
+    { id: "prep", label: "④ 战前布局", badge: store.run?.prep ? "✓" : "" },
+    { id: "maps", label: "⑤ 逐图配装", badge: Object.keys(store.run?.maps ?? {}).length ? `${Object.keys(store.run!.maps).length}图` : "" },
+    { id: "board", label: "⑥ 贴条·校验" },
+    { id: "guide", label: "⑦ 攻略资料" },
+  ];
+  // 封板快照:只保留结果页(攻略资料依赖存档图片,不随快照分发)
+  return store.snapshot ? all.filter((t) => ["overview", "prep", "maps", "board"].includes(t.id)) : all;
+});
 
-// 活动横幅(攻略原文配图,idx=3)
+// 活动横幅(攻略原文配图,idx=3;快照模式无图片资源)
 const bannerUrl = computed(() => {
+  if (store.snapshot) return "";
   const f = store.pack?.images?.["3"]?.file;
   return f ? import.meta.env.BASE_URL + "data/img/" + f : "";
 });
@@ -57,8 +64,17 @@ async function doLogin() {
       </div>
     </header>
 
+    <!-- 封板快照模式:只读报告 -->
+    <div v-if="store.snapshot" class="panel config">
+      <span class="keystate">
+        <span class="ok">■</span> 封板静态报告 · {{ store.snapshotMeta?.user }} ·
+        生成于 {{ store.snapshotMeta?.generated_at?.slice(0, 16).replace("T", " ") }}
+        <span class="dim">(数据全部内嵌,可离线打开;如需重跑请联系管理员)</span>
+      </span>
+    </div>
+
     <!-- 自托管模式:未登录只显示登录框 -->
-    <div v-if="store.server && !store.authed" class="panel" style="max-width: 420px; margin: 40px auto">
+    <div v-if="!store.snapshot && store.server && !store.authed" class="panel" style="max-width: 420px; margin: 40px auto">
       <h2 style="margin-top: 0">登录</h2>
       <p class="dim">输入管理员发给你的帐号密码。</p>
       <form @submit.prevent="doLogin" style="display: flex; flex-direction: column; gap: 10px">
@@ -72,7 +88,7 @@ async function doLogin() {
     </div>
 
     <template v-else>
-    <div class="panel config">
+    <div class="panel config" v-if="!store.snapshot">
       <span class="keystate">
         <template v-if="store.server"><span class="ok">●</span> API 由服务器托管 · {{ store.user }}</template>
         <template v-else-if="store.proxyKey"><span class="ok">●</span> API Key 已由本地代理注入(web/.env)</template>
@@ -111,12 +127,13 @@ async function doLogin() {
         </div>
       </div>
 
-      <ImportPanel v-show="tab === 'import'" />
-      <RunPanel v-show="tab === 'run'" @done="tab = 'overview'" />
+      <ImportPanel v-if="!store.snapshot" v-show="tab === 'import'" />
+      <RunPanel v-if="!store.snapshot" v-show="tab === 'run'" @done="tab = 'overview'" />
       <ResultOverview v-show="tab === 'overview'" />
+      <PrepPanel v-show="tab === 'prep'" />
       <ResultMaps v-show="tab === 'maps'" />
       <TagBoard v-show="tab === 'board'" />
-      <GuideView v-show="tab === 'guide'" />
+      <GuideView v-if="!store.snapshot" v-show="tab === 'guide'" />
     </template>
     </template>
 

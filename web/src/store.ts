@@ -19,6 +19,9 @@ function load(): PersistShape {
 
 const persisted = load();
 
+/** 封板静态导出:构建产物内嵌 window.__SNAPSHOT__ = {user, generated_at, box, run, master, pack} */
+const SNAP: any = (globalThis as any).__SNAPSHOT__ ?? null;
+
 /** 占位 key:真实 key 永远不进前端 —— 由本地 vite 代理(.env)或自托管服务器注入 */
 export const SERVER_KEY = "__server__";
 export const PROXY_KEY = "__proxy__";
@@ -26,10 +29,12 @@ export const PROXY_KEY = "__proxy__";
 export const store = reactive({
   manualKey: "", // 仅存内存,刷新即失
   model: persisted.model,
-  box: persisted.box as Box | null,
-  run: persisted.run as AgentRun | null,
+  box: (SNAP?.box ?? persisted.box) as Box | null,
+  run: (SNAP?.run ?? persisted.run) as AgentRun | null,
   master: null as Master | null,
   pack: null as GuidePack | null,
+  snapshot: !!SNAP,
+  snapshotMeta: SNAP ? { user: SNAP.user as string, generated_at: SNAP.generated_at as string } : null,
   loading: true,
   loadError: "",
   running: false,
@@ -49,6 +54,7 @@ export function apiKey(): string {
 }
 
 export async function probeServer() {
+  if (store.snapshot) return;
   try {
     const r = await fetch(import.meta.env.BASE_URL + "api/me");
     if (r.ok) {
@@ -108,6 +114,7 @@ export async function loadLatestRun() {
 }
 
 export function persist() {
+  if (store.snapshot) return;
   try {
     const { model, box, run } = store;
     localStorage.setItem(LS_KEY, JSON.stringify({ model, box, run }));
@@ -117,6 +124,12 @@ export function persist() {
 }
 
 export async function loadStatic() {
+  if (SNAP) {
+    store.master = SNAP.master;
+    store.pack = SNAP.pack;
+    store.loading = false;
+    return;
+  }
   try {
     const base = import.meta.env.BASE_URL;
     const [master, pack] = await Promise.all([

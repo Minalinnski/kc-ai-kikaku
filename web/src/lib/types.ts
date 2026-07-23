@@ -160,12 +160,22 @@ export interface MapResult {
   phases: PlanPhase[];
 }
 
+export interface PrepResult {
+  summary: string;
+  missing_ships: { ship: string; needed_for: string; how_to_get: string; alternative: string; priority: string }[];
+  level_gaps: { ship: string; current: string; target: string; reason: string; how: string; priority: string }[];
+  remodel_gaps: { ship: string; current: string; target: string; needs: string; priority: string }[];
+  equip_gaps: { item: string; have: number; need: number; source: string; workaround: string; priority: string }[];
+  checklist: { task: string; when: string; priority: string }[];
+}
+
 export interface AgentRun {
   verify?: { errors: number; warns: number; repaired?: boolean };
   model: string;
   started_at: string;
   finished_at?: string;
   overview?: OverviewResult;
+  prep?: PrepResult;
   maps: Record<string, MapResult>;
   errors: Record<string, string>;
   usage: { input: number; output: number; cache_read: number; cache_write: number };

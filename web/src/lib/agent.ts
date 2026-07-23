@@ -6,6 +6,7 @@ import type {
   Master,
   MapResult,
   OverviewResult,
+  PrepResult,
 } from "./types";
 import { compactBoxText } from "./parseBox.ts";
 import { verifyRun } from "./verify.ts";
@@ -101,6 +102,36 @@ const MAP_SCHEMA = obj({
   map_notes: str,
   phases: arr(PHASE_SCHEMA),
 });
+
+const PREP_SCHEMA = obj({
+  summary: str,
+  missing_ships: arr(
+    obj({ ship: str, needed_for: str, how_to_get: str, alternative: str, priority: str }),
+  ),
+  level_gaps: arr(
+    obj({ ship: str, current: str, target: str, reason: str, how: str, priority: str }),
+  ),
+  remodel_gaps: arr(obj({ ship: str, current: str, target: str, needs: str, priority: str })),
+  equip_gaps: arr(
+    obj({ item: str, have: num, need: num, source: str, workaround: str, priority: str }),
+  ),
+  checklist: arr(obj({ task: str, when: str, priority: str })),
+});
+
+const PREP_TASK = `# 任务:活动战前布局 —— 缺口清单与准备建议
+
+以上面的锁船总方案为基准,对照 box 逐项盘点开打前要补的功课,输出可执行清单:
+
+1. missing_ships 舰船缺口:方案/攻略点名但 box 未持有(或多号机数量不足)的舰。注明用途(哪张札/哪阶段)、获取途径(本活动海域可捞的优先——语料中E6捞船/各图掉落信息;其次通常海域掉落、建造/大建),来不及就给 box 内平替。
+2. level_gaps 练度缺口:锁船方案 level_note 里标了练度不足/勉强的舰,给目标等级、理由与练法(远征旗舰/3-2/7-1/演习)。
+3. remodel_gaps 改造缺口:需要的形态还没改到(改二/特/丙等),注明当前形态→目标形态、还差多少级、是否需要设计图/催化剂/战报等素材。
+4. equip_gaps 装备缺口:逐图统计后紧张或缺失的关键装备,注明 have/need 数量、获取来源(开发公式/改修更新线/任务/活动段位奖励)与临时平替。
+5. checklist 开打前行动清单:按优先级排序,每项给建议完成时点(活动 2026-07-08 已开,考虑剩余日程)。
+
+规则:
+- priority 统一用 P0(不做会卡关)/P1(显著降险)/P2(锦上添花);
+- 数量核对以 box 为准,不要把已持有的报成缺口;练度以 box 实际 Lv 为准;
+- 素材类只在攻略语料或明确常识支持时提及,不要臆造掉落率/公式。`;
 
 const REPAIR_SCHEMA = obj({
   phase_patches: arr(obj({ map: str, phase: str, patched: PHASE_SCHEMA })),
@@ -398,7 +429,27 @@ export async function runAgent(
       callbacks.onStage(mapId, "error", run.errors[mapId]);
     }
   };
+  // 战前布局:与逐图同级并行(同样只依赖锁船总方案,共享热缓存)
+  const runPrep = async () => {
+    callbacks.onStage("prep", "start");
+    try {
+      const { result, usage } = await callStructured(
+        client, model, guideCorpus, boxText,
+        `<锁船总方案参考>\n${overviewJson}\n</锁船总方案参考>`,
+        PREP_TASK, PREP_SCHEMA, 64000,
+        (c) => callbacks.onProgress("prep", c),
+      );
+      run.prep = result as PrepResult;
+      accUsage(run, usage);
+      delete run.errors["prep"];
+      callbacks.onStage("prep", "done");
+    } catch (e) {
+      run.errors["prep"] = String((e as Error).message ?? e);
+      callbacks.onStage("prep", "error", run.errors["prep"]);
+    }
+  };
   const pending = maps.filter((m) => !run.maps[m]);
+  const needPrep = !run.prep;
   if (pending.length) {
     // 全并行(首token门控):首图请求一旦开始响应,缓存前缀即已写入,
     // 立刻放行其余图并行 —— 兼得缓存读价与最大并行度。
@@ -406,7 +457,13 @@ export async function runAgent(
     const gate = new Promise<void>((r) => (release = r));
     const first = runMap(pending[0], release);
     await Promise.race([gate, first]); // 出错提前结束也放行
-    await Promise.all([first, ...pending.slice(1).map((m) => runMap(m))]);
+    await Promise.all([
+      first,
+      ...pending.slice(1).map((m) => runMap(m)),
+      ...(needPrep ? [runPrep()] : []),
+    ]);
+  } else if (needPrep) {
+    await runPrep();
   }
 
   // 阶段3:机器校验 → 自动修复回路(只改冲突位)→ 复检

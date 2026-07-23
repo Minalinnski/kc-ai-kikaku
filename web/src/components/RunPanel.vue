@@ -132,7 +132,11 @@ function run(fresh: boolean) {
 }
 
 const hasPartial = computed(
-  () => store.run && (Object.keys(store.run.errors).length > 0 || selectedMaps.value.some((m) => !store.run!.maps[m])),
+  () =>
+    store.run &&
+    (Object.keys(store.run.errors).length > 0 ||
+      selectedMaps.value.some((m) => !store.run!.maps[m]) ||
+      !store.run.prep),
 );
 </script>
 
