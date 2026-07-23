@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { store, persist, apiKey } from "../store";
-import { runAgent, estimateCost } from "../lib/agent";
+import { runAgent } from "../lib/agent";
+import ProgressDash from "./ProgressDash.vue";
 
 const emit = defineEmits<{ done: [] }>();
 
@@ -14,16 +15,10 @@ const canRun = computed(
   () => !!apiKey() && !!store.box?.ships.length && !!store.box?.equips.length && !store.running,
 );
 
-const stages = computed(() => ["overview", ...selectedMaps.value, "repair"]);
-
-function stageLabel(s: string) {
-  if (s === "overview") return "锁船总方案(通读攻略+全box)";
-  if (s === "repair") return "机器校验 + 自动修复";
-  return `${s} 逐阶段配装`;
-}
 
 // ── 服务器模式:发起 job + 轮询(关页无损,回来自动恢复) ──
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
+const serverStatus = ref<any | null>(null);
 
 async function serverRun(fresh: boolean) {
   globalError.value = "";
@@ -47,6 +42,7 @@ async function pollStatus() {
     const r = await fetch(base + "api/run/status");
     if (r.ok) {
       const st = await r.json();
+      serverStatus.value = st;
       if (st.stages) store.stageStatus = st.stages;
       if (st.status === "running") {
         store.running = true;
@@ -78,6 +74,7 @@ onMounted(() => {
       .then(async (r) => {
         if (!r.ok) return;
         const st = await r.json();
+        serverStatus.value = st;
         if (st.status === "running") {
           store.stageStatus = st.stages ?? {};
           store.running = true;
@@ -134,7 +131,6 @@ function run(fresh: boolean) {
   return store.server ? serverRun(fresh) : localRun(fresh);
 }
 
-const cost = computed(() => (store.run ? estimateCost(store.run, store.run.model) : 0));
 const hasPartial = computed(
   () => store.run && (Object.keys(store.run.errors).length > 0 || selectedMaps.value.some((m) => !store.run!.maps[m])),
 );
@@ -172,36 +168,13 @@ const hasPartial = computed(
       <p v-if="globalError" class="err">✗ {{ globalError }}</p>
     </div>
 
-    <div class="panel" v-if="store.running || store.run || Object.keys(store.stageStatus).length">
-      <h3 style="margin-top: 0">进度</h3>
-      <div v-for="s in stages" :key="s" class="stage-row">
-        <div
-          class="stage-dot"
-          :class="{
-            running: store.stageStatus[s]?.status === 'running' || store.stageStatus[s]?.status === 'start',
-            done: store.stageStatus[s]?.status === 'done' || (s === 'overview' ? !!store.run?.overview : s !== 'repair' && !!store.run?.maps[s]),
-            error: store.stageStatus[s]?.status === 'error',
-          }"
-        ></div>
-        <div style="flex: 1">
-          {{ stageLabel(s) }}
-          <span v-if="store.stageStatus[s]?.chars" class="dim">
-            — 已生成 {{ (store.stageStatus[s].chars! / 1000).toFixed(1) }}k 字符</span>
-          <span v-if="store.stageStatus[s]?.detail" class="dim"> — {{ store.stageStatus[s].detail }}</span>
-          <span v-if="store.run?.errors[s]" class="err"> — {{ store.run.errors[s] }}</span>
-        </div>
-      </div>
-      <p v-if="store.run" class="dim" style="margin-bottom: 0">
-        <template v-if="store.run.verify">
-          校验:<b :class="store.run.verify.errors ? 'err' : 'ok'">{{ store.run.verify.errors }} 硬冲突</b>
-          / {{ store.run.verify.warns }} 提示<span v-if="store.run.verify.repaired">(已自动修复)</span> ·
-        </template>
-        Token:输入 {{ (store.run.usage.input / 1000).toFixed(0) }}k · 缓存读
-        {{ (store.run.usage.cache_read / 1000).toFixed(0) }}k · 缓存写
-        {{ (store.run.usage.cache_write / 1000).toFixed(0) }}k · 输出
-        {{ (store.run.usage.output / 1000).toFixed(0) }}k · 估算成本 ${{ cost.toFixed(2) }} ·
-        模型 {{ store.run.model }}
-      </p>
-    </div>
+    <ProgressDash
+      v-if="store.running || store.run || Object.keys(store.stageStatus).length"
+      :status="serverStatus"
+      :maps="selectedMaps"
+    />
+    <p v-if="store.run && Object.keys(store.run.errors).length" class="err">
+      <span v-for="(msg, s) in store.run.errors" :key="s">✗ {{ s }}:{{ msg }}<br /></span>
+    </p>
   </div>
 </template>

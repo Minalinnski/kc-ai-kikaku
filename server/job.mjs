@@ -60,7 +60,10 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
       usage: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
     };
 
-    const job = { status: "running", stages: {}, startedAt: Date.now(), model, maps, error: null };
+    const job = {
+      status: "running", stages: {}, startedAt: Date.now(), model, maps, error: null,
+      events: [], runRef: run,
+    };
     jobs.set(user, job);
     quota[user][today] = (quota[user][today] ?? 0) + 1;
     writeFileSync(quotaFile, JSON.stringify(quota));
@@ -73,7 +76,15 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
         checkpoint();
         const result = await runAgent(apiKey, model, pack, box, master, maps, {
           onStage(stage, status, detail) {
-            job.stages = { ...job.stages, [stage]: { ...job.stages[stage], status, detail } };
+            const prev = job.stages[stage] ?? {};
+            const now = Date.now();
+            job.stages = { ...job.stages, [stage]: {
+              ...prev, status, detail,
+              t0: prev.t0 ?? now,
+              t1: status === "done" || status === "error" ? now : prev.t1,
+            } };
+            job.events.push({ t: now, stage, status, detail: detail ?? null });
+            if (job.events.length > 100) job.events.splice(0, job.events.length - 100);
             checkpoint();
             console.log(`[job:${user}] ${stage} ${status} ${detail ?? ""}`);
           },
@@ -82,6 +93,7 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
           },
         }, run);
         run = result;
+        job.runRef = result;
         checkpoint();
         const failed = Object.keys(result.errors ?? {}).length;
         job.status = failed ? "error" : "done";
@@ -103,6 +115,7 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
     return {
       status: j.status, stages: j.stages, startedAt: j.startedAt,
       model: j.model, maps: j.maps, error: j.error, hasRun: existsSync(savePath(user)),
+      events: j.events, usage: j.runRef?.usage ?? null, verify: j.runRef?.verify ?? null,
     };
   }
 
