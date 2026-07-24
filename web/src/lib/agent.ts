@@ -459,7 +459,7 @@ export async function runAgent(
     try {
       const { result, usage } = await callStructured(
         client, model, guideCorpus, boxText, null,
-        OVERVIEW_TASK, OVERVIEW_SCHEMA, 64000,
+        OVERVIEW_TASK, OVERVIEW_SCHEMA, 128000,
         (c) => callbacks.onProgress("overview", c),
       );
       run.overview = result as OverviewResult;
