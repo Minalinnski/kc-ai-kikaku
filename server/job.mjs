@@ -2,7 +2,7 @@
  * 服务端 agent job 管理:每用户一个任务,进度内存态+检查点落盘,日配额。
  * agent 逻辑直接复用 web/src/lib/agent.ts(node 类型擦除加载)。
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -51,6 +51,12 @@ export function createJobManager({ apiKey, root, quotaPerDay = 4 }) {
     if (!fresh) {
       const prev = loadSave(user);
       if (prev?.run?.overview || Object.keys(prev?.run?.maps ?? {}).length) run = prev.run;
+    } else if (existsSync(savePath(user))) {
+      // 全新跑覆盖前留底(保留最近5份)
+      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      copyFileSync(savePath(user), join(runsDir, `${user}.bak-${ts}.json`));
+      const baks = readdirSync(runsDir).filter((f) => f.startsWith(`${user}.bak-`)).sort();
+      for (const f of baks.slice(0, -5)) unlinkSync(join(runsDir, f));
     }
     run ??= {
       model,
